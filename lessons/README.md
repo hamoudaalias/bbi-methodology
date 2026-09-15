@@ -1,5 +1,5 @@
-# Lessons — 50 methodological lessons
+# Lessons — 51 methodological lessons
 
-One file per lesson, numbered `lesson_01` … `lesson_50`.
+One file per lesson, numbered `lesson_01` … `lesson_51`.
 Each file: YAML frontmatter + statement + context + BBI implication + reference.
-Populated in Phase 2 from the sealed corpus.
+Populated from the sealed corpus (`docs/05-Execution/Methodological Lessons Corpus (BBI).md`).
