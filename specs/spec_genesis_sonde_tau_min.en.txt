@@ -1,0 +1,85 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_sonde_tau_min.txt (SHA 80e450e65cc43cb9…) immutable.
+source_fr: "data/genesis_spec_sonde_tau_min.txt"
+sha_source: "80e450e65cc43cb9"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "τ_min Probe — Frozen Protocol (Sealed Spec)"
+type: design
+project: BBI
+version: 0.1
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec, tau-min, probe, genesis]
+---
+
+τ_min PROBE — FROZEN PROTOCOL (SEALED spec)
+
+Status: PRE-REGISTERED · CHEF GO (2026-09-14, arbitrage Option D + τ_min probe).
+Nature: INFORMATIONAL DIAGNOSTIC — NO verdict, NO gate, NO cut-off.
+It does not replace nor modify the J4 Report (verdict PARTIAL 10/30, digest
+809838ec…) ; it quantifies for which r the pair suffices per seed and tests
+the "τ alone" part of hypothesis D (two regimes).
+
+§1 — Objective
+  τ_min(seed) for the 30 eval seeds 93_000-93_029 of the inertial-arm testbed:
+  smallest multiplicative factor r (τ_max_eff = 5.0·r) making the seed PASS
+  (|θ−θ_cible| < 0.1 @ cycle 50), under a protocol identical to J4 (controller
+  sealed byte-for-byte, 0 oracle, 0 bbbi). Confirms or refutes: "the τ
+  extension only covers the heavy regime; the light seeds remain in failure."
+
+§2 — Probe lever
+  TAU env = (-5.0, -2.5, 0.0, 2.5, 5.0) (sealed §2.2 testbed e22dc3ae…).
+  r applies: TAU[i] *= r, IN PLACE (shared object reference env + loop),
+  then strictly identical restoration in finally. r > 1 extends the set;
+  r = 1.0 = strict J4 replay (internal validation).
+
+§3 — r grid (exact, ascending order)
+  r ∈ [1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.5, 8.0, 10.0]
+  → τ_max_eff = 5, 6.25, 7.5, 10, 12.5, 15, 20, 25, 32.5, 40, 50 N·m.
+  Coverage bound: equilibrium π/2 on the heaviest requires ≈ 47 N·m
+  (m≈4.81, L=1) → r=10.0 maximal. τ_min = None if failure at r=10.0.
+
+§4 — Protocol per (seed, r)
+  1. Checks: spec present, corpus loaded (spec_sha == cc0e662b…, digest
+     3b7406f6…), sealed files (env, canal, touch, modal encoder, loop,
+     controller) commits clean, J4 prededicate replayed at r=1.0.
+  2. Perception Toucher seeding (latent_params_v2 measure=False) → (m̂, b̂),
+     after a 0.51 s read; m_true/b_true never read (Guard exceptions).
+  3. PerceptifLoopV2 (K=W_CAP=32, γ=0.10, LAM_SLIDE=0.5, C5_STEPS=50,
+     SEUIL_C5 band=0.1); action ∈ CAND = (3,2,4,0,1); |τ| ≤ τ_max_eff + 1e-9;
+     0 NaN on (theta_obs, omega_obs, w_base, fidelite).
+  4. Bit-identical AUTO-REPLAY: independent pipeline #2 redoes (seed, r) →
+     sha256(records) equal (Failure → HALT, logs a determinism failure).
+  5. Records: m̂, θ_final, erreur, pass, zero_crossings, first_in_band,
+     energy_cum, energy_injected.
+  Monotonically increasing grid, single pass per (seed, r): no adaptive
+  search; tau_min = first r of the grid that passes.
+
+§5 — Outputs (data/sonde_tau_min_result.json)
+  · per_seed: {seed, m_est, pass@r=1 (== J4), tau_min_r (None if failure at 10.0),
+    erreur@r=1, erreur@tau_min, zc@r=1, zc@tau_min, recoverable_by_tau:bool}.
+  · summary: n_recoverable, seeds_unrecoverable, light_unrecoverable
+    (m̂ ≤ ~1.9 and None), heavy_unrecoverable, j4_repro_ok (map pass r=1 == J4),
+    sha256(without elapsed_s). Stable and reproducible digest.
+
+§6 — Prohibitions / exclusions
+  · NO NEG/PART/POS verdict, no comparison to J4 §7 cut-offs; the output
+    json does NOT touch data/controleur_amorti_J4_*.json.
+  · NO bbbi import / causal self-test; never m_true/b_true.
+  · NO adaptive r search nor post-hoc fine sweep: fixed grid §3,
+    tau_min = first r that PASSes (the smallest, monotonicity verified).
+  · No seed re-labeling nor new virgin block consumed: the 30 93k seeds are
+    already consumed by J4; the probe is a deterministic REUSE (replay), no
+    new corpus opened.
+  · Only the "τ" part of hypothesis D is probed here; the light-damping
+    component is covered by a separate J0 (not included).
+
+§7 — Cost
+  ≤ 11 r × 30 seeds × 2 replays × 50 cycles = 33,000 rk4-2 loop steps
+  (≈ minutes of CPU, single process, pure NumPy, 0 network).
+
+§8 — Honesty
+  τ_min = None PUBLISHED for any seed not covered at r=10.0 (no
+  cherry-picking); complete seed-by-seed map in the summary;
+  light-regime error is expected to WORSEN as r grows (over-correction)
+  → documented, not masked.

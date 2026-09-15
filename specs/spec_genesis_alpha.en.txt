@@ -1,0 +1,66 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_arm_env.txt (SHA e22dc3ae2d2c4c78…) immutable.
+source_fr: "data/genesis_spec_arm_env.txt"
+sha_source: "e22dc3ae2d2c4c78"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "Design Doc GENESIS Alpha J0 — Damped Pendulum (Continuous Physical Testbed)"
+type: design
+project: BBI
+version: 0.1
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec]
+---
+
+GENESIS Phase Alpha — SEALED Spec of the Damped Pendulum (sealed J0 §2)
+==================================================================
+
+PHYSICAL SYSTEM
+  Simple damped pendulum with hidden mass, 1 degree of freedom.
+  State   : [θ, ω]        θ ∈ [-π, π], ω ∈ ℝ
+  L = 1.0 m              arm length (fixed)
+  g = 9.81 m/s²          gravity (fixed)
+  m ∈ [0.5, 5.0] kg      mass (HIDDEN VARIABLE h)
+  b ∈ [0.1, 2.0]         viscous friction (HIDDEN VARIABLE h)
+  Equation (Lagrange) : θ'' = -(g/L)·sin(θ) - (b/m)·ω + τ/(m·L²)
+
+ACTIONS (discrete, MultiStepPlanner-compatible)
+  a ∈ {0, 1, 2, 3, 4} → τ ∈ {-5.0, -2.5, 0.0, 2.5, 5.0} N·m
+  a_probe = 3 (τ = +2.5 N·m), a_null = 2 (τ = 0.0)  [Causal Touch §4]
+
+INTEGRATION
+  Home-made Runge-Kutta 4 (no scipy.integrate), dt = 0.02 s.
+  float64 everywhere; no non-deterministic operation.
+
+OBSERVATION
+  Full state [θ, ω] (no velocity inference required at J1).
+
+COST
+  total = (θ - θ_target)² + λ·τ²,  λ = 0.01, θ_target = π/2.
+  cumulative energy tracked: Σ τ² per step.
+
+FROZEN CONSTANTS (module genesis_arm_env.py)
+  L=1.0 · G=9.81 · DT=0.02 · N_ACTIONS=5
+  TAU=(-5.0,-2.5,0.0,2.5,5.0) · M_RANGE=(0.5,5.0) · B_RANGE=(0.1,2.0)
+  LAMBDA=0.01 · THETA_TARGET=π/2
+
+RESERVED SEEDS (sealed §5)
+  80000..80009  RK4 determinism        (C1)
+  80010..80019  continuous H0          (C2)
+  80020..80029  Causal Touch m=1.0     (C3, J2)
+  80030..80039  Causal Touch m=2.5     (C3, J2)
+  80040..80049  Causal Touch m=4.0     (C3, J2)
+  80100..80119  E-W-C-P-L integration  (C4, J3)
+  80200..80219  manipulation task      (C5, J4)
+  80300..       Reserve (never without demonstration)
+
+CONTINUOUS H0 (sealed §3)
+  snapshot(env) -> {'state':(θ,ω), 'time', 'm', 'b'}  deep copy
+  restore(env)  -> exact state + clock; m, b fixed
+  Integrity     : 2 trajectories with same seed/actions with snapshot/restore
+                  mid-way -> final states diff == 0.0 (< 1e-12 required)
+
+FORBIDDENS (sealed §10)
+  0 modification of the Rust core · 0 LLM in the cognitive loop ·
+  0 external physics engine (MuJoCo/PyBullet) · 0 non-seeded noise ·
+  0 post-measurement tuning of the physical parameters.

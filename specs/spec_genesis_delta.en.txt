@@ -1,0 +1,167 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_delta.txt (SHA a5b72f94e2f526e7…) immutable.
+source_fr: "data/genesis_spec_delta.txt"
+sha_source: "a5b72f94e2f526e7"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "GENESIS Delta — Canonical Specification (J0' sealable)"
+type: design
+project: BBI
+version: 0.2
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec, delta, genesis, partial-observation, omega-inference]
+---
+BBI — GENESIS DELTA — CANONICAL SPECIFICATION (J0' sealable)
+Version: 0.2 (pre-registered 0.1 → diligence §11 PASSED at J0' → sealing)
+Date: 2026-09-09 | Project: BBI | Chef: J0 validated, GO diligence §11
+Status: READY FOR SEALING. SHA fixed after this document (J0'). No code before sealing.
+
+==================================================================
+1. SCIENTIFIC QUESTION
+==================================================================
+Can BBI infer angular velocity ω from observation of angle θ alone,
+and maintain W/C fidelity ≥ 0.9 with partial observation?
+One hidden variable only: m ∈ [0.5, 5.0] kg. Friction b = 0.5 N·m·s is
+KNOWN and fixed (hiding m, b and ω simultaneously underdetermines the
+problem — Chef decision).
+
+==================================================================
+2. PHYSICAL MODEL (damped pendulum Alpha REUSED, pure NumPy, float64)
+==================================================================
+EQUATION OF MOTION (Lagrange, sealed Alpha, UNCHANGED):
+    θ'' = -(g/L)·sin(θ) - (b/m)·ω + τ/(m·L²)
+CONVENTIONS: vertical plane; θ = 0 stable (hanging); θ ∈ [-π, π]
+(wrapped); τ > 0 = θ increasing.
+
+PHYSICAL CONSTANTS (FROZEN, carried over from Alpha):
+    g  = 9.81 m/s²
+    L  = 1.000 m
+    m  = UNKNOWN, HIDDEN VARIABLE ∈ [0.5, 5.0] kg (Alpha interval)
+    b  = 0.50 N·m·s  KNOWN, FIXED (W model constant)
+    dt = 0.02 s (50 Hz)
+
+==================================================================
+3. PARTIAL OBSERVATION AND ω INFERENCE (CORE OF DELTA)
+==================================================================
+The agent observes θ(t) ONLY. env.state[1] (ω) is NEVER read by
+E, W or P; ω is only read by the C branch (ground truth via H0) and
+diagnostics.
+
+ESTIMATOR (backward difference attributed to the MIDPOINT of the interval —
+refinement chosen by diligence §11; UNIQUE across all phases — Toucher,
+loop, manipulation):
+    ω̂(t_k) = (θ(t_k) − θ(t_{k−1}))/dt,   attributed to the midpoint of [t_{k−1}, t_k]   (k ≥ 1)
+    ω̂(t_0) = 0                         (exact rest)
+
+Deterministic, closed-form, no knowledge of m or the model. Aligns energy
+f(θ, ω̂) and flux Σω̂²·dt at the same instant (midpoint mesh) → Toucher
+energy balance exact to O(dt²). Diligence §11: multiplicative bias c (LS) = 1.0013
+(±0.13 % amplitude), mean relative error 0.25 (dominated by zero crossings
+of ω, published T_delta_0 — non-decidable).
+
+==================================================================
+4. ACTION (FROZEN, Alpha)
+==================================================================
+5 actions: τ ∈ {−5.0, −2.5, 0.0, +2.5, +5.0} N·m; a=2 = NULL. Exact table
+from sealed Alpha §2.2.
+
+==================================================================
+5. CONTINUOUS H0 PROTOCOL (FROZEN, reused from Alpha)
+==================================================================
+Snapshot/restore carries: θ, ω, t, m (hidden variable) and constants.
+Partial observation does NOT change the H0 mechanism (the restore recovers
+the full integration state; the agent only observes θ). Test: snapshot step
+10 → advance 30 → restore → advance 30 → final state bit-identical (diff
+< 1e-12), 10/10 seeds (83010..83019).
+
+==================================================================
+6. DELTA CAUSAL TOUCHER (impulse + inverted energy balance)
+==================================================================
+PROTOCOL (reuses Alpha impulse, extended into Gamma coast) — from exact
+rest [0,0] (canonical initial state imposed by protocol), 2 composed H0
+pairs:
+    Pair 1: KICK τ=+2.5 (a=3), h=4 steps → COAST τ=0 (a=2), k=500 steps
+    Pair 2: KICK τ=−2.5 (a=1), h=4 steps → COAST τ=0 (a=2), k=500 steps
+    m_agent = (m_est⁽¹⁾ + m_est⁽²⁾)/2          (always computed from ω̂)
+Kick ±2.5 (a=1/a=3), coast 500 steps (10 s): calibrated by diligence §11
+(worst m 1.00 %, agreement 0.0000 %).
+
+INFERENCE FORMULA (energy balance, m sought — b known):
+    f(θ, ω̂) = ½·L²·ω̂² + g·L·(1 − cos θ)            (≡ energy/m)
+    coast τ=0 : dE/dt = −b·ω̂²
+    m_est = b·Σ_j ω̂_j²·dt / (f0 − f1)
+            f0 = MIDPOINT of the 1st coast interval;
+            f1 = MIDPOINT of the last interval;
+            Σ over the same intervals (identical common mesh);
+            the kick interval is EXCLUDED from Σ (torque work ≠ dissipation).
+Multiplicative bias of ω̂ compensated to first order (quotient ∝ ω̂²/ω̂²).
+
+==================================================================
+7. RESERVED SEEDS (PRIME families)
+==================================================================
+    83000..83009  RK4 determinism         (m=1.0, b=0.5)
+    83010..83019  continuous H0           (m=1.0, b=0.5)
+    83020..83029  Causal Toucher m=1.0
+    83030..83039  Causal Toucher m=2.5
+    83040..83049  Causal Toucher m=4.0
+    83100..83119  E-W-C-P-L loop          (m drawn by seed ∈ [0.5, 5.0])
+    83200..83219  adaptive target manipulation (m drawn by seed ∈ [0.5, 5.0])
+    83300..       reserve (never consumed without demonstration)
+
+==================================================================
+8. SUCCESS CRITERIA
+==================================================================
+    C1  RK4 determinism: 10/10 seeds bit-identical (diff < 1e-12);
+        identical θ obs ⟹ identical ω̂.
+    C2  Continuous H0: 10/10 seeds snapshot/restore bit-identical.
+    C3  Causal Toucher m: error < 15 % (30/30 seeds, m=1.0/2.5/4.0);
+        2-pair agreement ≈ 0.
+    C4  Partial-obs E-W-C-P-L loop: 100 cycles × 20 seeds, 0 crash,
+        0 NaN/Inf, W/C fidelity ≥ 0.9, τ² energy traced + exactly
+        recomposed, agent never read ω.
+    C5  Manipulation (adaptive target): |θ(100 steps) − θ_cible(m_agent)|
+        < 0.10 rad, 20/20 seeds (terminal); band entry ≤ 50 steps
+        reported.
+
+==================================================================
+9. MANIPULATION TARGET — ADAPTATIVE (Lesson 35, mirror of Alpha C5a)
+==================================================================
+    θ_cible(m_agent) = arcsin( τ_max / (m_agent·g·L) ),  τ_max = 5.0 N·m
+Formula PRE-RECORDED in the spec: recomputes the target from m_agent
+(after Toucher), tightens the task for heavy masses — not a post-hoc
+redefinition. Terminal band ±0.10 rad.
+
+==================================================================
+10. COST / CONTROLLER
+==================================================================
+Cost = (θ − θ_cible)² + 0.01·τ² (unchanged from Alpha). Raw deposited
+energy: cum_energy += τ² at each step (the audit recomposes it exactly).
+P: sliding surface σ = (θ − θ_cible) + λ·ω̂, action = argmin_{a} |σ′(a)|
+predicted by W (RK4 belief m_agent, b=0.5) over 2 steps (LECON 37 reach),
+tiebreak by |τ| then index. λ = 0.18 FROZEN (diligence §11: sweep 0.15/0.18/0.22
+→ worst terminal 0.0131 / 0.0202 / 0.0203 rad, 20/20 < 0.10; 0.18 = C4 reference).
+
+==================================================================
+11. CUT-OFF
+==================================================================
+NEGATIVE VERDICT if C1 OR C2 OR C3 OR C4 fails.
+C5: SUCCESS / PARTIAL (non cut-off) — any unreachable target justified
+by the static equation §9 + measurement, never by threshold tuning.
+Manipulation start: rest (defensive convention).
+
+==================================================================
+12. ABSOLUTE PROHIBITIONS
+==================================================================
+0 modifications to Rust core / Phase 13 codebook. 0 LLM in the loop (P
+deterministic, W-only). 0 external physics engine (pure NumPy — no
+MuJoCo/PyBullet/Brax/SciPy.integrate). Observe θ ONLY (ω̂ via §3, never
+env.state[1]). b KNOWN. UNIQUE estimator §3 (no stronger offline estimator
+at Toucher). Seeds outside forbidden families. No threshold redefinition
+without equation+measurement. Raw energy never projected. Spec SHA-256
+immutable once sealed.
+
+==================================================================
+13. FINGERPRINT
+==================================================================
+spec SHA-256 immutable (this file) — constant SEALED in Design Doc
+GENESIS Delta J0' §2.8 and replayed as SPEC_SHA in J1 (T_delta_8).

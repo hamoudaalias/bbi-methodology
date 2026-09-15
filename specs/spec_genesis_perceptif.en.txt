@@ -1,0 +1,464 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_perceptif.txt (SHA 5165e9dfe5b37c29…) immutable.
+source_fr: "data/genesis_spec_perceptif.txt"
+sha_source: "5165e9dfe5b37c29"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "Design Doc Perceptive Encoder J0 — Raw perceptive channel (quantised 1D stream), causal latent, 3 encoder paths"
+type: design
+project: BBI
+version: 0.1
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec]
+---
+
+# Design Doc Perceptive Encoder J0 — Raw perceptive channel → causal latent, 3 paths
+
+**BBI programme — Perceptive Encoder Programme (Chantier A, CP arbitration
+2026-09-11, deferred post-trading since the Visual Perception closure).**
+Scientific question :
+
+> *Can BBI encode a **raw** perceptive stream (a quantised and noisy 1D read
+> of a physical sensor — neither a continuous state nor pixels) into a causal
+> latent representation, without deep learning, through one of three
+> **deterministic encoding paths** (modal / geometric / sampling), then apply
+> the SAME primitives (H0, Causal Touch, E-W-C-P-L loop) to this latent ? An
+> architecture that extends, not a collection of programmes.*
+
+> ⚠️ **This programme is NOT "Vision v3".** The Visual Perception extension
+> is closed **definitively** (v1 C4=0.8958 < 0.9, v2 C4=0.8637 < 0.88, Lessons
+> 40-41, arbitration of 2026-09-11: Option A — closure, no v3). No pixel, no
+> camera, no 2D render in this programme: the perceptive channel is a **1D
+> sensor stream** (sin θ quantised to uint8 + bounded noise). The information
+> loss is **bounded and measured in diligence** (Lesson 40), never discovered
+> at J3.
+
+**BBI progression (unified reframing — BBI is ONE E-W-C-P-L architecture) :**
+- **Continuous physical extension** — pendulum, 2-segment arm, friction — **✅ COMPLETE** (POSITIVE)
+- **Symbolic reasoning extension (EU261)** — **✅ COMPLETE** (J4 POSITIVE, commit `c7fdcf4`)
+- **Trading extension** — **✅ COMPLETE** (J4 POSITIVE, 384/512, Lesson 42)
+- **Causal Discovery extension** — **✅ COMPLETE** (v2 PASS, B_max=12, J0' `adde22fa…`/`57485345…`)
+- **Visual Perception extension** — **❌ CLOSED** (NEGATIVE v1 + v2, Lessons 40-41)
+- **Perceptive Encoder Programme (3 paths)** — **🔵 J0 PRE-REGISTERED — awaiting CP validation**
+
+This document is **pre-registered, sealable, then sealed** (NO code before CP
+validation): GO Chef → **diligence D1-D5 (§11)** → **SEALED spec** (SHA §9) →
+J1..J4 (5 days). The thresholds §6 and cut-offs §7 are **FROZEN as of J0**
+(Lesson 30: nothing moves after measurement).
+
+---
+
+## 0. Starting situation — why a new programme, and not a relaunch
+
+Two extensions built the "E encodes an observation" framework: the continuous
+physics observes the **continuous state** (θ, ω) directly; Visual Perception
+observes **pixels** (2D uint8 64×64 render) and produced two consecutive
+failures. Carved lessons :
+
+- **Lesson 40** — in perception, the **perceptive information loss** (pixel
+  channel) is structural: a threshold calibrated on a diligence allocation
+  does not hold on the evaluation allocation. The loss must be **provisioned
+  into the threshold**, not discovered at J3. Measured: sealed ref 0.8702,
+  v2 provisioned 0.88, obtained 0.8637.
+- **Lesson 41** — **two consecutive failures on the same extension, with the
+  same cause, = definitive closure by default.** Visual Perception is closed,
+  not relaunched.
+- **Lesson 42** — a decision function that depends on a single variable
+  available at the first horizon makes horizons indistinguishable; the test
+  measures the chain construction, not anticipation.
+
+Methodological reading: the **pixel** channel was the wrong abstraction of the
+loss — not perception in general. The perceptive counterpart that reproduces
+neither the pixel loss (Lesson 40) nor a single cause unfalsified by path
+(Lesson 41) is a **1D sensor channel**: quantised read of sin θ, bounded
+noise. The CP arbitration slices **Chantier A — Perceptive Encoder**, defined
+as: **one scientific question, three independent encoding paths** — each with
+its own operational definition, its oracle ceiling (R2) measured in diligence,
+its criteria and its cut-off. A failing path is **NEGATIVE published** and
+**does not drag the others down** (Lesson 41 applied **per path**, not per
+programme).
+
+## 1. Objective
+
+Extend the **E (Encoder) layer** to **raw sensor perception** on the sealed
+physical testbed: BBI reads a **quantised and noisy 1D stream** of the
+pendulum's projected position, must extract a **causal latent representation**
+(angle, velocity, visible dissipation), and **reason causally** on top of it —
+infer the hidden mass by **intervention** (perceptive Causal Touch), predict
+the perceptive effects of actions (W), measure causal attribution by stream
+difference (C), choose (P) and trace (L) — **as before**, on this latent.
+
+Three deterministic encoding strategies are pre-registered and evaluated
+**independently**:
+
+| Path | Central idea | Identified risk (documented) |
+|---|---|---|
+| **A — Modal** (Fourier / wavelets) | sliding spectral representation of the stream (STFT + numpy Haar DWT) | non-periodic dynamics (strong friction, transients) → blurred dominant frequency |
+| **B — Geometric** (line / circle / contour primitives) | primitives of the reconstructed phase plane (segments, arcs, circles, envelope) | fragile primitive detection under quantisation/noise → tolerant global fit required |
+| **C — Adaptive sampling** (relevant regions) | the encoder reads only an adaptive subset of informative points (extrema, derivative zero crossings) | failing selection regulation → context loss (declared `missing[]`, never filled) |
+
+**Non-objectives:** no camera nor pixels (Perception closure, Lesson 41), no
+deep learning (forbidden §10.1), no infinite continuous variables, no closed
+form of the world equations, no decision on a real sensor.
+
+## 2. Specification (SEALABLE — contained in this document, SHA imprint §9)
+
+### 2.1 Domain — 1D perceptive channel (sensor stream of the sealed pendulum)
+
+**Physical testbed:** Alpha's damped pendulum (**`GenesisArmEnv`**, SEALED
+Alpha — same dynamics, hidden mass m∈[0.5,5.0] kg, sealed friction b∈[0.1,2.0],
+quantised torques, dt=0.02 s, initial rest observation). Reused as-is,
+**never modified** (CP decision: correction/extraction agent-side).
+
+**Perceptive channel (the only input of E):** pure function `capture(state) →
+u ∈ ℤ_{0..255}^W` :
+
+- at each sensor step `t_k`, **1D** read of the projection: `s_k = sin(θ(t_k))`
+  (non-linear projection, like the 2D camera, but **without spatial render**) ;
+- **quantisation**: `q_k = round(127.5·(1 + s_k))` → scale 0..255 (uint8) —
+  the pendulum is seen by a discretised sensor ;
+- **bounded sensor noise**: `u_k = clip(q_k + n_k, 0, 255)`, `n_k = U(−ε, +ε)`
+  rounded to integer, ε fixed **per seed** (ε ∈ {0, 1, 2} quantum levels —
+  quantisation variants, mirror of the discovered testbed noise matrix, pure
+  function of the seed) ;
+- the observed window `W_cap` = 32 sensor steps (0.64 s), sliding.
+
+Justification: (a) it is the **minimal generalisation** of the state channel:
+the 1D quantised sensor keeps the causality of the sealed POSITIVE physical
+testbed while introducing a **bounded and adjustable perceptive information
+loss** (ε) — Lesson 40 is handled by **measured provisioning**, not by a pixel
+channel; (b) **H0-compatible**: `capture` is pure and deterministic (seeded
+for n_k) → bit-identical snapshot/restore enforceable; (c) **0 exotic asset** —
+pure NumPy; (d) the sinusoidal projection is NOT directly the angle → the
+encoder must **de-project** (visual-chamber mirror, without the pixel
+collaterality).
+
+The **real physical sensor** (noise, non-replayable calibration) is explicitly
+**out of J0-J4 scope** (bit-identical H0 requires a replayable world) — future
+extension documented, never weakened.
+
+### 2.2 Input of E and latent representation (3 paths, 0 deep learning)
+
+**Common input:** stream `u = (u_1..u_Wcap)` (uint8) + **previous** stream `u′`
+(1-step memory for temporal derivatives). **Output:** `z_v = E_V(u, u′) ∈ ℝ⁸`,
+path V ∈ {A, B, C}.
+
+**Path A — Modal (spec `perc_encoder_modal.py`)**
+
+1. **STFT** numpy (hann window 16, hop 8) on the stream → spectrum matrix
+   `S[t,f]`;
+2. **pure numpy Haar DWT** (level 3, filters [1,1]/[1,−1]/√2) → approximation/
+   detail bands;
+3. **ω̂ modal** = instantaneous phase derivative of the fundamental component
+   (dominant frequency by weighted argmax over 3 bands [0.1, 0.5, 1.0]·f_nyq);
+4. **θ̂ modal** = unwrapped phase of the fundamental component (arcsin
+   association of the projection — de-projection);
+5. z_A = `[cosθ̂, sinθ̂, ω̂, E_total, E_band1..3, spectral_coherence]`;
+6. if no stable dominant component (diffuse energy, saturated stream) →
+   **`missing[]` declared** (never filled).
+
+Assumed and documented risk: strong friction ⇒ fast damping ⇒ widened spectrum
+(non-stationary transient) — handled by **measured non-stationarity** and
+honest refusal, never by force.
+
+**Path B — Geometric (spec `perc_encoder_geom.py`)**
+
+1. **Reconstructed phase plane** `(u, Δu)` (u̇ ≈ robust finite difference on
+   the uint8 stream);
+2. **Primitives** extracted — pure NumPy:
+   - line segments (recursive Ramer-Douglas-Peucker approximation, tol 5);
+   - **arcs / circles** (least-squares circle fit on sliding triplets,
+     radius ≥ 2 px, sealed internal tolerance);
+   - **envelope** (convex hull / extrema of the phase cloud);
+3. **z_B** = `[dominant_circle_radius, centre_x/y, dominant_segment_slope,
+   ω̂_geom (circle-angle derivative), radius_min/max, envelope_compactness,
+   energy]`;
+4. if no stable primitive (formless cloud) → **`missing[]`** declared.
+
+Assumed risk: quantisation+noise deform the primitives → a tolerant, coherent
+global fit (no learned parameter), verified by the non-causal invariance
+(§8 T_perc_7).
+
+**Path C — Adaptive sampling (spec `perc_encoder_sample.py`)**
+
+1. **Adaptive selection** of the stream's relevant regions: local extrema
+   (|Δu| ≥ adaptive per-window threshold), derivative zero crossings,
+   maximum-derivative points (top-k) — treats ~20 % of the points;
+2. **Reconstruction**: causal interpolation (numpy cubic spline between
+   retained points) / damped kernel (sealed internal sigma) → dense
+   reconstructed signal;
+3. **z_C** = number/positions of the extrema, amplitudes, zero-crossing
+   instants (→ period → ω̂), inter-extrema slopes (→ dissipation), per-point
+   confidence (`missing[]` if < 3 reliable extrema on the window);
+4. systematic honest refusal if the selection regulation fails.
+
+Assumed risk: context loss → declared `missing[]`, measured by perceptive
+scarcity (§8), never invented.
+
+**Common properties (sealed):** zero width of the free parameters ⇒ 0 deep
+learning, bit-identical replay (T_perc_1). z_v is **quasi-state**: W predicts
+the next z_v from (z_v, action) without reading the exact state. **The mass m
+stays hidden**: no feature of a stream contains it — it is inferable only by
+**intervention** (Touch §2.5), tested on the perceptive differential.
+
+### 2.3 Model W — PERCEPTIVE effects of actions (deterministic, pure NumPy)
+
+The "world": Alpha's sealed dynamics (Lagrange, RK4, quantised torques,
+m ∈ [0.5,5.0], b ∈ [0.1,2.0]) **serves as ORACLE** (truth — readable by C and
+L only, §10.5). **W** is the same operator **conditioned on the perceptive
+latent**: `W(z_v, a) → ẑ′_v` (prediction of the next z_v). Criterion CE4:
+"C measures z_v_causal (do-vs-null stream difference), W predicts the same
+quantity" — the fidelity is measured on the **perceptive causal differential**,
+not on raw z (mirror Alpha C4 / Vision CV4). **W never touches the hidden
+state**; it predicts ẑ′_v through a path image model (sinusoidal projection,
+same RK4 stencil as the env, Eq. A5) then E_V(Î′) → ẑ′_v. No oracle call in
+W (T_perc_5).
+
+### 2.4 PERCEPTIVE H0 protocol — snapshot/restore of the OBSERVATIONS
+
+The "observation" = the **raw stream** `u` (uint8) + derived features.
+
+- **Snapshot**: `bytes(u)` = `u.tobytes()` + `hash(u)` + exact sensor state
+  (repr, arr, noise seed ε).
+- **Restore**: refeed/compute E → decorrelate → same `u` → E_V(u, u′)
+  identical.
+- **Bit-identical required**: `np.array_equal(u_restored, u_snapshot)`
+  otherwise FAIL (T_perc_2).
+
+The counterfactual operates on the **streams**: `do(var:=val)` re-captures the
+stream with the variable replaced; `null` re-captures the nominal value. The
+**stream difference** `Δu = u_do − u_null` is the **perceptive attribution** of
+the pair (mirror H0 + Touch, but on the 1D stream).
+
+### 2.5 PERCEPTIVE Causal Touch — inference by intervention, measurement on streams
+
+Hidden mass impossible to read on a stream (§2.2) → **minimal intervention**:
+a **K-step window (0.4 s) at constant τ** (1 step = detectable stream
+variation, the 1D sensor is more sensitive than the sub-pixel), torque pair
+`(a_probe=3, a_null=2)`, from rest. From the **PERCEPTIVE angles θ̂_e**
+(successive, regardless of the path — de-projection of u by the path),
+identification through the dynamics' **exact damped kernel** (same modality as
+W — physics, not threshold fitting):
+
+    θ̈ = A − (g/L)·θ − 2γ·θ̇   →   θ̂(A,t) = A·Ψ(t),
+    Ψ(t) = [1 − e^{−γt}·(cos ωd t + (γ/ωd)·sin ωd t)]/ω0²,  ω0² = g/L,
+    A = Σ θ̂_e(t)·Ψ(t) / Σ Ψ(t)²   →   m_est = τ/(A·L²).
+
+The **latent damping rate γ̂** comes from a dedicated Friction probe (kick
+then coast, logarithmic decrement of the perceptive extrema —
+**m-independent**) → **3-pass latency** (`m̂₀` dry kernel → `γ̂` coast → refit
+`m̂`, then `b̂ = 2γ̂m̂`). The null branch (τ=0) is subtracted (counterfactual).
+**Error < 15 % required** (CE3 — mirror Alpha C3 / Vision CV3; Lesson 40
+provision: the threshold is FROZEN at 15 %, the margin provided by the 1D
+channel vs pixel is measured in diligence). **Perceptive counterfactual**:
+`capture(θ̂, ω̂, m̂, a) vs capture(θ̂, ω̂, m̂, a_null)` → Δu attribution ≥
+threshold ⇒ "perceptive link" (T_perc_4). Scope: inference of **mass &
+friction**; C, E, R, L sole legitimate readers of the exact state (C/L: §10.5;
+E/R: stream only).
+
+### 2.6 PERCEPTIVE E-W-C-P-L loop
+
+| Layer | Perceptive role |
+|---|---|
+| **E** | `z_v = E_V(u, u′)` (path V, §2.2) — 0 deep learning |
+| **W** | `W(z_v, a) → ẑ′_v, ẑ′_v_null` (perceptive effects, never the hidden state) |
+| **C** | measures the causal effect: `Δz_v = z_v_do − z_v_null` on **re-captured streams** (12-step/0.24 s measurement window, base velocity measured); attribution by `Δu`; emits the perceptive causal chain JSON |
+| **P** | chooses `a ∈ {a_probe, a_null, ±5, ±2.5, 0}` by \|σ′\| predicted by W, **with horizon-dependent information** (Lesson 42: the long perceptive window provides spectral bands / primitives / extrema that do not exist at short horizon → progressive anticipation tested, not only chain construction) |
+| **L** | JSONL journal: `flux_hash`, z_v, action, Δu_energy, Δz_v, m_est, verdicts per path |
+
+### 2.7 Output L — Perceptive protocol fields (JSON)
+
+`flux_hash`, `step`, `z_v[]`, `voie`, `action`, `z_pred`, `z_null_pred`,
+`delta_flux_energy`, `chain[]` (perceptive links: `feature`, `Δu`,
+`direction`, `accord`), `m_est`, `frottement_est`, `prediction`
+(stabilised / oscillation / indeterminate), `missing[]` (features
+non-informative at this step — never invented).
+
+## 3. H0 protocol (FROZEN — §2.4 mirror)
+
+Bit-identical float64/uint8 snapshot/restore of the perceptive stream. The
+counterfactual = same operation (branches with/without intervention from the
+same snapshot).
+
+## 4. Perceptive Causal Touch — and the independence of the paths
+
+The CP arbitration decided: **new perceptive channel, intact physical testbed,
+three independent encoding paths** (the same question, three hypotheses):
+
+- The testbed is the **contract**: `GenesisArmEnv` (Alpha) **never modified**
+  (Lesson 30);
+- Lesson 41 is applied **per path**: each path is a pre-registered experiment,
+  with oracle ceiling (R2) measured in diligence and frozen thresholds; a
+  NEGATIVE path does not sink the others (only the 3 NEGATIVE paths close the
+  programme);
+- Each path has its dedicated module (`perc_encoder_modal.py` /
+  `perc_encoder_geom.py` / `perc_encoder_sample.py`) + its runner — **disjoint
+  files**, disjoint seeds (§5), independently auditable (per-path T_perc_8
+  isolation).
+
+## 5. Seeds (FIRST families 90000+, Chef decision)
+
+The whole **90000-90119** family is **FIRST** (never touched before — verified
+by diligence scan D3: 0 hit in `python/`, `scripts/`, `data/`). Families of
+previous extensions: physics 10000-19999, symbolic (EU261) 60000+, trading
+70000-79999, perception 85000-85067, discovery 89000-89549. **90000+ = no
+collision.**
+
+| Family | Seeds | Usage |
+|---|---|---|
+| Channel + determinism | 90000..90009 | 10 seeds, bit-identical stream+z replay per path |
+| Perceptive H0 | 90010..90019 | 10 seeds bit-identical snapshot/restore |
+| Perceptive Touch | 90020..90027 | 8 seeds, mass inference by perceptive stream |
+| Path A loop | 90028..90047 | 20 seeds × 100 cycles |
+| Path A evaluation | 90048..90057 | 10 seeds, criteria CE1..CE5 + traps |
+| Path B loop | 90058..90077 | 20 seeds × 100 cycles |
+| Path B evaluation | 90078..90087 | 10 seeds, criteria CE1..CE5 + traps |
+| Path C loop | 90088..90107 | 20 seeds × 100 cycles |
+| Path C evaluation | 90108..90117 | 10 seeds, criteria CE1..CE5 + traps |
+| Reserve | 90120+ | never consumed without demonstration |
+
+**Volumes:** 128 cases (per path: 32 N1 + 32 N2 + 32 N3 + 32 N4 shared across
+paths, vision mirror) + 60 perceptive traps (PP1..PP7: sensor saturation,
+strong noise ε=2, too-short window, flat stream, hard quantisation, absorption
+of the projection at zenith, distractor). 4 observation horizons per case
+(J-1, H-6, H-2, H-0 → 100, 300, 600, 1200 sensor steps).
+
+## 6. Success Criteria (FROZEN — pre-registered as of J0, Lesson 30)
+
+| Criterion | Threshold (frozen) |
+|---|---|
+| **CE1 — Perceptive determinism** | 10/10 seeds (90000..90009): 2 executions → `np.array_equal` of the streams (uint8) AND of the z_v (diff == 0) |
+| **CE2 — Perceptive H0** | 10/10 seeds (90010..90019): bit-identical snapshot/restore of the **uint8 streams** |
+| **CE3 — Perceptive Causal Touch** | hidden mass inferred from the **estimated perceptive angles** (damped kernel Ψ, 3-pass latency, §2.5): relative error < 15 % (FROZEN threshold, Lesson 40 provision) |
+| **CE4 — Perceptive W/C fidelity** | **≥ 0.80** AND **> R1 + 0.05** on the **perceptive causal differential** (C: Δz_v image-streams; W: same quantity) — 20 seeds × 100 cycles, **per path** |
+| **CE5 — Perceptive manipulation (objective)** | stabilise θ ≈ θ_target (recomputed from perceptive m_est): error < 0.1 rad in ≤ 50 steps, 20/20 (mirror Alpha C5a / Vision CV5) |
+
+**CE4 frozen ≥ 0.80**: nominal value recorded as of J0, **confirmed** (never
+adjusted) by diligence D2 (oracle ceiling R2 measurement per sub-family,
+margin ≥ 0.05 above R1) — consistent with Lesson 40 (measured provisioning)
+and Lesson 45 (solvency per sub-family). If the recommended ceiling R2 is
+below the threshold, the sub-family is **excluded** from the discovery
+(documentation), never the threshold lowered.
+
+## 7. Cut-off (pre-registered — Chef decision §6.3#8)
+
+**NEGATIVE VERDICT (per path)** if, on the path's sealed evaluation:
+1. **CE1 (perceptive determinism) fails** — the bit-identical replay (stream +
+   z_v) is the condition of any reproducible science;
+2. **CE2 (perceptive H0) fails** — the bit-identical snapshot/restore of the
+   perceptive observations is the foundation of the counterfactual;
+3. **CE3 (perceptive Causal Touch) fails** — inference by intervention on a
+   sensor stream is the heart of the question (§0);
+4. **CE4 fails by crash / NaN / oracle leak** (unstable loop or E/W/P reading
+   the exact state).
+
+**CE5:** objective — if it fails alone, **PARTIAL** verdict for the path
+(causal perception is proven; manipulation remains a limit — published, never
+masked). **Programme closure**: 3 NEGATIVE paths (Lesson 41 applied by
+programme beyond the per-path clause) — CP decision, published.
+**No threshold/p fitting after measurement** (forbidden §10.7).
+
+## 8. Diagnostics & Tests (T_perc)
+
+| Test | Checks |
+|---|---|
+| **T_perc_0** | Perceptive honesty/observability: non-informative streams/features → `missing[]` never filled; spec SHA replayed |
+| **T_perc_1** | **CE1** perceptive determinism: 2 runs → bit-identical stream+z_v (10 seeds 90000..90009), diff == 0, **per path** |
+| **T_perc_2** | **CE2** bit-identical perceptive H0 (10 seeds 90010..90019): uint8 snapshot/restore == |
+| **T_perc_3** | **CE3** perceptive Causal Touch (8 seeds 90020..90027): m_est error < 15 % |
+| **T_perc_4** | Perceptive counterfactual: symmetric pair agreement ≈ 0; link ⟺ \|Δu\| ≥ threshold (15 uint8 units) |
+| **T_perc_5** | Perceptive W: **never reads the hidden state** (only z_v and action); deterministic replay |
+| **T_perc_6** | Perceptive E-W-C-P-L loop: 20 seeds × 100 cycles, 0 crash, 0 NaN, L output JSON §2.7-compliant, coherent `missing[]` |
+| **T_perc_7** | Global evaluation: CE1..CE5 on 128 cases + 60 perceptive traps (determinism, H0, perceptive Touch, fidelity, manipulation) |
+| **T_perc_8** | **Forbiddens + isolation**: 0 deep learning (torch/tensorflow/keras/sklearn/cv2/opencv), 0 LLM, 0 Rust — NumPy only; **E/W/P read only the perceptive stream** (C/L only: exact state); spec SHA intact; **disjoint path seeds verified**; Phase 13 codebook **intact at committed hashes** |
+
+Absolute Forbiddens
+
+1. **0 deep learning**: no learning library (torch, tensorflow, keras, jax,
+   sklearn, cv2/opencv, scipy); **pure NumPy only** (capture, STFT/DWT,
+   primitives, counterfactual).
+2. **0 LLM** in the cognitive loop (deterministic P, W-only).
+3. **0 pixel, 0 camera, 0 2D render**: the programme is NOT Vision v3
+   (Lesson 41 closure); the channel is the **1D sensor stream** (§2.1), pure
+   function.
+4. **0 modification of the sealed physical testbed** (`GenesisArmEnv`, sealed
+   Alpha SHA) nor of the Rust core / Phase 13 codebook (committed hashes).
+5. **The ORACLE (exact state θ, ω, m, b) is readable ONLY by C (measurement /
+   counterfactual branch) and L (diagnostic)** — **E/W/P read ONLY the
+   perceptive STREAM** (T_perc_8 audit).
+6. **Out of J0-J4 scope**: real sensor / non-replayable sensor noise
+   (bit-identical H0 is impossible on a non-replayable world) — documented
+   extension, never weakened. **Forbidden: adding observable state variables
+   to the agent during the evaluation** (the encoder solves the PERCEPTIVE
+   loss, not by changing the channel).
+7. No invented value: non-informative features → `missing[]` /
+   "indeterminate" (honesty = axiom, not optional criterion). **No
+   threshold/p fitting after measurement** (Lesson 40, Lesson 30).
+8. No case outside the frozen families; reserve 90120+ not consumed;
+   **strictly disjoint path seeds** (no sample crossing between paths).
+9. Spec SHA-256 immutable once sealed (replayed by T_perc_0/T_perc_8).
+10. **Lesson 41 per path:** a path NEGATIVE triggers neither any recalibration
+    nor any "implicit v2" — publication, then explicit CP decision.
+
+## 11. Diligence D1-D5 (pre-sealing J0' — to be completed BEFORE sealing)
+
+| Verification | Requirement |
+|---|---|
+| **D1 — Causality of the Perception closure** | the 2 v1/v2 failures (0.8958, 0.8637) are explained (structural pixel loss, Lessons 40-41); the bounded 1D channel §2.1 does not reproduce the cause; the programme is explicitly documented as new (NOT Vision v3) |
+| **D2 — Solvency per path** | oracle ceiling R2 ("perfect inverse" contaminated encoder, reading of the unquantised stream) measured **per sub-family** (Lesson 45) on all candidate families; sub-families with R2 < CE4 threshold are excluded from the discovery and documented; margin ≥ 0.05 above R1 confirmed |
+| **D3 — Seeds 90000-90119 virgin** | scan 0 true hit in `python/`, `scripts/`, `data/` (Perception/discovery scan mirror) — FIRST family |
+| **D4 — Channel + H0 embryos** | `capture()` pure function, bit-identical on replay (T_perc_1/2 embryos); intact testbed (GenesisArmEnv SHA unchanged) |
+| **D5 — Determinism / isolation / budget** | bit-identical replay of the 3 encoders; disjoint path files and seeds; forbiddens verified (import scan); 5-day budget tenable; SHA of the full file recorded for sealing |
+
+Each diligence item is recorded in its runner (`scripts/`), generates a results
+JSON (`data/`), and its digest is reported here **before** sealing. **Verdict:
+all GREEN ⇒ J0' sealing.**
+
+## 12. Execution Sequence
+
+| Day | Task | Deliverable |
+|---|---|---|
+| J0 | CP validation of THIS design doc → **diligence D1-D5** → sealed spec SHA (§9) → GO | **J0' SEALED** — J1..J4 start |
+| J1 | Perceptive channel (quantised+noisy 1D capture) + the 3 encoders (perc_encoder_{modal,geom,sample}.py) + perceptive H0 + T_perc_0/1/2 | Deterministic raw perception (3 paths) |
+| J2 | perceptive Causal Touch (m_est from perceptible angles) + perceptive counterfactual Δu + T_perc_3/4 | causal inference by perceptive intervention |
+| J3 | perceptive E-W-C-P-L loop per path (W perceptive effect, C stream attribution, P horizon-sensitive Lesson 42, L JSONL) + T_perc_5 | perceptive causal reasoning (3 paths) |
+| J4 | global CE1..CE5 evaluation per path + T_perc_6/7/8 + lessons + per-path Reports | Verdicts (POSITIVE / PARTIAL / NEGATIVE **per path**) |
+
+**Total budget: 5 days** (Alpha/Beta/Gamma/Delta, Symbolic, Perception,
+Discovery mirror).
+
+## 13. Explicit methodological lessons (referenced to the corpus)
+
+- **Lesson 40** — the perceptive information loss is **provisioned into the
+  threshold**: CE4 = ≥ 0.80 + > R1 + 0.05, confirmed by diligence D2 (oracle
+  ceiling per sub-family), **never adjusted after measurement**. The bounded 1D
+  channel (vs pixel) reduces the loss — documented as the central hypothesis
+  of CE3.
+- **Lesson 41** — two consecutive failures = closure by default: Visual
+  Perception is closed (NO v3); the programme manages the risk **per
+  independent path**, and programme closure if 3 NEGATIVE paths — accepted and
+  published decision, no implicit recalibration.
+- **Lesson 42** — the anticipation test must depend on horizon-dependent
+  information: the long perceptive window (H-0) provides spectral bands /
+  primitives / extrema absent at short horizon ⇒ P integrates this
+  information, and the horizon tightness is verified (no late information
+  revealed to the early horizons).
+
+## 14. Conclusion
+
+The Perceptive Encoder programme tests a **new capacity** (raw 1D sensor
+perception → causal latent) on an **identical architecture** (E-W-C-P-L, H0,
+Causal Touch) — without deep learning nor pixels. Three deterministic and
+independent encoding paths (modal / geometric / sampling) are pre-registered,
+each with frozen thresholds, hard cut-off and its own verdict; a NEGATIVE path
+is published and does not drag the others down. This document is
+**pre-registered (J0)** and awaits the **CP validation** — **0 code before GO**.
+
+**Links:** [[INDEX]] · [[BBI Methodological Lessons]] · [[Audit Log]] ·
+[[Arbitration — Visual Perception Extension (NEGATIVE closure, relaunch path, Founder decision)]]
+· [[Arbitration — Visual Perception Extension v2 (NEGATIVE verdict, second failure, Founder decision)]]
+· [[Visual Perception Extension Report — NEGATIVE Verdict]] ·
+[[Design Doc Causal Discovery v2 J0 — Auto-retention correction (median-over-time) and budget B_max=15 (Option B CP)]]
+· [[Final J4 Report — Causal Discovery Extension v2 (Sealed evaluation CS1-CS6, 50 systems, verdict PASS)]]
+· [[Design Doc Trading Extension J0 — Causal reasoning on markets (Yahoo Finance + FRED)]] ·
+[[Trading Extension J4 Report — Evaluation Axes A-F]]

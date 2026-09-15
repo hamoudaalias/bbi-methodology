@@ -1,0 +1,298 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_controleur_amorti.txt (SHA cc0e662bfd11d0b1…) immutable.
+source_fr: "data/genesis_spec_controleur_amorti.txt"
+sha_source: "cc0e662bfd11d0b1"
+translation_date: "2026-09-15"
+note: "Source is already 95% English. Frontmatter translated from French; body preserved as-is."
+title: "Design Doc Damped Stabilizing Controller J0 — Explicit damping in Layer P (Lesson 49)"
+type: design
+project: BBI
+version: 0.2
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec, damped-controller, layer-p, omega-long, lesson-49]
+---
+
+# Design Doc Damped Stabilizing Controller J0 — Explicit damping in Layer P
+
+**BBI programme — Damped Stabilizing Controller (Lesson 49).** Workstream
+opened by porteur decision (GO 2026-09-14). The **Perceptive Encoder v2**
+extension is **closed on PARTIAL** (CE4 PASS 3/3 saturated · CE5 PARTIAL 9/30 —
+Lesson 49, `Perceptive Encoder v2 J4 Report…`). Lesson 49 documents the exit
+door: *"any exit path after a rich channel passes through the controller:
+explicit damping, systematic ω̂_LONG, maintain-vs-approach planning — with a
+new J0 and a D1-D5 diligence, never a post-measure threshold adjustment"*
+(`BBI Methodological Lessons.md:1643`, `Journal d'Audit.md:4371`).
+
+> ⚠️ **This programme is NEITHER a relaunch of the Perceptive Encoder v2 NOR a
+> threshold adjustment.** The perceptive programme stays **closed on PARTIAL**
+> (Lesson 41 per programme). The v2 specs (`52ec1014…`), seeds (92_000-92_119)
+> and criteria **do not move**. This J0 is a **new programme** targeting
+> **only layer P** of the physical E-W-C-P-L chain (`python/genesis/`).
+
+**Falsifiable scientific question:**
+
+> *Can BBI **STABILIZE** (CE5) a dynamic target — not merely approach it — if
+> layer P of the v2 loop replaces the instantaneous ω̂ of its sliding
+> prediction with a **systematic long-window estimate** ω̂_LONG (sliding
+> average over the ω̃ window, K = W_CAP = 32) and adopts a **two-phase
+> MAINTAIN-vs-APPROACH policy** (phase threshold γ = 0.10 rad)? The bottleneck
+> has been localized to the controller (Lesson 49: CE4 saturates at 1.0 while
+> CE5 stays PARTIAL, with P the only unchanged stage during v1→v2). The damping
+> controller must raise stabilization from **9/30 to ≥ 25/30 virgin eval seeds
+> (93xxx)**, with E, channel, W, C, testbed and dynamics **frozen**.*
+
+**Discipline:** no threshold tuning, no parameter added post-measurement, no
+seed chosen after the fact. Every parameter fixed below is sealed in the J0
+before any experimentation.
+
+---
+
+## 1. BBI progression (unified context)
+
+- Continuous physical extension (pendulum / 2-segment arm / friction) — ✅ COMPLETE
+- Symbolic EU261 extension — ✅ COMPLETE · Trading extension — ✅ COMPLETE
+- Active Causal Discovery v2 — ✅ COMPLETE (PASS)
+- Perceptive Encoder v1 — ❌ PARTIAL then new programme v2 — ❌ PARTIAL
+- **Damped Stabilizing Controller — ⬛ THIS PROGRAMME (Layer P only)**
+
+---
+
+## 2. Historical CE5 v2 audit (diligence D1 — scoping)
+
+Resolution at the source (`scripts/run_perceptif_v2_j4.py`):
+
+```python
+C5_STEPS = 50                 # ≤ 50 control steps (mirror H_C5A)   (l.74-75)
+SEUIL_C5 = 0.1                # final error < 0.1 rad               (l.74)
+recs = loop.run(C5_STEPS)                                # 50 P-L cycles (l.482)
+err = abs(float(loop.env.state[0]) - loop.theta_cible)   # INTERNAL state (l.483)
+```
+
+**D1 decision (frozen): "50 steps" = 50 control cycles** (50 calls to
+`PerceptifLoopV2.step()`), each cycle applying `K_PAS = 4` env steps at
+`DT = 0.02` s ⇒ **50 × 4 = 200 env steps = 4.0 simulated seconds.** The final
+error is read on the **internal state `env.state[0]`** (not θ̃) after the 50th
+cycle (`run_perceptif_v2_j4.py:483`), `pass = final_error < 0.1` on the
+**non-π/2-diagnostic** seeds (judges, `:496-498`). **This exact horizon and
+reading produced 9/30** (A 2/10 · B 5/10 · C 2/10, blocks
+92_060-69/92_070-79/92_080-89, digest `ddf23cea…`). No residual ambiguity.
+
+---
+
+## 3. Exact scope (frozen)
+
+**Modified (Layer P only):**
+- `python/genesis/perceptif_loop_v2.py` — **two points**: (i) `_P:220-234`
+  (two-phase policy); (ii) the `omega_long` wiring in `step():257-262`
+  (source of ω̂_LONG). The rest of the file **unchanged**.
+- New module `python/genesis/controller_amorti.py` (ω̂_LONG + policy).
+
+**Frozen, untouchable (hashes §5):** `genesis_arm_env.py` (testbed,
+SPEC_SHA `e22dc3ae…`) · v2 channel (`perceptif_canal_v2.py`, W_CAP=32,
+EPS_V2=(0.005,0.010,0.020), ε=seed%3) · v2 encoders · `perceptif_touch_v2.py`
+(m̂) · W (image-model RK4) · C (H0 v2) · Rust causal self-test
+(`scripts/selftest_causal.py`) · `python/bbi_runtime/` (out of scope).
+
+**Already-in-place quantities that stay frozen:** `CAND=(3,2,4,0,1)`,
+`K_PAS=4`, `θ_cible = theta_cible_depuis_m_est(m̂_agent)` (`:55-61`), cached
+`m̂_agent` from the perceptive Touch J2.
+
+---
+
+## 4. Frozen baseline (diligence D4 — non-regression)
+
+The baseline is the v2 layer P **as committed today** (pristine:
+`perceptif_loop_v2.py` unmodified since J3 v2).
+
+- File commit: `4e11beb` (« J3 — Boucle E-W-C-P-L v2 feedback »)
+- Reference HEAD (sealing): `8d7d294` (main, 2026-09-14)
+- SHA-256 of frozen files (record, do not regenerate):
+  - `perceptif_loop_v2.py` → `2c1b074d1d102a59f8b1a0006b022df09939013d854d5ba1163bca5986a0903a`
+  - `genesis_arm_env.py` → `a5e7e53eabe2f5b37a74f6e0a4f00aaec75c7b18b9a25cef97e52e5631fa49fd`
+  - `perceptif_canal_v2.py` → `e80fdcc707cbace7602b7d0eee49464e58bb6651ee80688379321a27ccf7f4f4`
+- **Bit-identical non-regression:** the new runner, called with
+  `P = frozen baseline` (`controller_amorti` disabled), **replays the 30
+  historical seeds 92_060-92_089 and must reproduce digest `ddf23cea…`** (same
+  `final_error`, same per-seed, same JSON; two executions → identical digests).
+  These seeds are already measured — pre-seal replay is **licit** and consumes
+  nothing virgin.
+
+**Sealed baseline parameters (do NOT change):**
+`LAM_SLIDE = 0.5` (`perceptif_loop_v2.py:49`), `SEUIL_C5 = 0.1`,
+`C5_STEPS = 50` (cycles, §2), per-seed perturbed canonical start (identical
+to v2).
+
+---
+
+## 5. ω̂_LONG specification (diligence D2 — design, frozen)
+
+**Chosen estimator: family B' — arithmetic sliding average over ω̃.**
+
+```
+ω̂_LONG[t] = (1 / W_CAP) · Σ_{i=0}^{W_CAP−1} ω̃[t−i],   W_CAP = 32
+```
+
+- **Input:** the v2 loop's sliding buffer `_buf_omega` (last 32 sensed ω̃
+  values, float64, window = W_CAP = 0.64 s, aligned with H0 v2). **No** hidden
+  state reads; **no** finite-difference operator on θ̃ (noise ε ≤ 0.02 would be
+  amplified) — we average already-sensed ω̃.
+- **Determinism:** float64 sum/division over a buffer of deterministic captures
+  (bits fixed by the channel+seed chain) → bit-identical; summation order fixed
+  (explicit indexed sequential summation, not an unspecified reducer).
+- **Initialization:** until the buffer holds W_CAP readings (v2 warmup), ω̂_LONG
+  is **unavailable** → `omega_long = None` → strict fallback to baseline
+  (`om_init = w_base`, exactly as today).
+- **Missing values:** any window entry flagged `missing[]` (failed re-capture,
+  NaN forbidden) ⇒ **never imputed**: the window is declared unavailable →
+  `None` → fallback. Honest per-cycle `missing[]` accounting (v2 N4 pattern,
+  never patched).
+- **Signature:** `omega_long_wcap(omega_buffer) -> float | None` (module
+  `controller_amorti.py`, pure function, isolable test).
+- **Contract:** finite and `|ω̂_LONG| > 1e-9` to enter the existing
+  `_P(..., omega_long)` slot (`:220-224`) — no other use.
+
+---
+
+## 6. Two-phase MAINTAIN-vs-APPROACH policy (diligence D2, frozen)
+
+**Single sealed phase threshold:** `γ = 0.10 rad` (aligned with the success
+band SEUIL_C5 = 0.1). One value, **no sweep**.
+
+**Phase rule (exact condition, evaluated each cycle before action choice):**
+
+```
+σ   = (θ − θ_cible) + LAM_SLIDE · ω̂_LONG        # ω̂_LONG if available, else buffer ω̃
+APPROACH  if  |σ| > γ
+MAINTAIN  if  |σ| ≤ γ
+```
+
+- **APPROACH** (outside the band): argmin over `CAND` of `|σ′_a|` predicted by
+  W (RK4, `om_init = ω̂_LONG` if reliable) — **identical to baseline** (same
+  sliding surface, same tie-break `(|τ|, a)`).
+- **MAINTAIN** (inside the band, the currently-failing case — transient
+  stabilization 1..18 cycles): W predicts `(θ′_a, ω′_a)` over 2 RK4 steps for
+  the 5 torques; choose `a*` minimizing, in order:
+  1. `|ω′_a|` (damp — first priority in the band),
+  2. drift sign toward θ_cible consistent with `σ` (do not overshoot),
+  3. `|τ_a|` then index (energy, Principle 4).
+
+**Falsifiable rationale:** the CE5 failure is the non-lock
+(`|θ(50)−θ_cible| ≤ 0.1` not held, oscillation around the target). Trapping ω
+inside the band through explicit damping must remove target crossing. If ω̂_LONG
+or the MAINTAIN rule change nothing (≤ 9/30) → NEGATIVE published.
+
+**Hardening:** γ is **not** a verdict threshold — it is a *policy* parameter
+sealed once. Its value 0.10 ≤ SEUIL_C5 guarantees that entering MAINTAIN never
+equals success before the final read.
+
+---
+
+## 7. Metrics & cut-offs (diligence D3 — protocol, frozen)
+
+**Primary criterion (per eval seed, on virgin eval 93000-93029):**
+
+```
+success(seed)  ⇔  final_error = |env.state[0] − θ_cible| < 0.1 rad
+                  after exactly 50 control cycles (200 env steps, 4.0 s)
+                  read at the 50th cycle (never "reached once")
+```
+
+**Pre-declared cut-offs (immutable after measurement; verdict on the 30 eval
+seeds, π/2-diagnostic seeds judged as in v2):**
+
+| Verdict | Criterion (over 30 eval seeds) |
+|---|---|
+| **NEGATIVE** | ≤ 9/30 (plancher reproduction: no progress) |
+| **PARTIAL** | 10/30 – 24/30 |
+| **POSITIVE** | ≥ 25/30 |
+
+**Secondary metrics (traced, never a cut-off):** `energy_injected`, `energy_cum`,
+zero-crossings (oscillation), first in-band entry (cycle), max overshoot out of
+band, per-cycle `missing[]`, NaN incidents (0 allowed), m̂ fallbacks (0
+expected).
+
+---
+
+## 8. Seed plan (diligence D3, reserved — 92xxx block closed)
+
+| Use | Seeds | Status |
+|---|---|---|
+| **Eval** | `93000–93029` (10-per-path slices: 93000-09 · 93010-19 · 93020-29) | virgin, sealed, **never** touched before the eval runner |
+| **Dev** | `93100–93119` | virgin, loop/corpus outside the eval block |
+| **Traps PP1-PP7** | `93200–93229` | virgin, traps re-declared in the runner (cf. §9 test list) |
+
+- **`_draw_hidden` compatibility verified by construction:** the regime
+  reproduces exactly `GenesisArmEnv._draw_hidden` (same RNG, same order m then
+  b) via `regime_for_seed` (`scripts/build_perceptif_corpus_v2_j4.py:57-62` —
+  reused **verbatim**) and `ε = EPS_V2[seed % 3]`. Initial state is
+  `reset()`'s (seed `100000+seed`, θ0∈[−0.5,0.5], ω0∈[−0.2,0.2]) + v2 §5.1
+  perturbed canonical start (reused as-is).
+- **No seed chosen after the fact. No out-of-plan seed. No dev/eval
+  intersection** (empty-intersection test in the suite, §10).
+
+---
+
+## 9. Runner contract `scripts/eval_controller_amorti.py`
+
+- **Inputs:** spec SHA (§10), testbed hash `e22dc3ae…`, eval/dev/trap seeds,
+  sealed parameters (`K=W_CAP=32`, `γ=0.10`, `LAM_SLIDE=0.5`, `C5_STEPS=50`,
+  `SEUIL_C5=0.1`), frozen-baseline pointer, mode `baseline|candidate`.
+- **Outputs:** `data/controleur_amorti_J{n}_report.json` (verdict + per-seed)
+  · `data/controleur_amorti_J{n}_audit.jsonl` (one line/cycle, honest `missing[]`)
+  · manifest (SHA-256 digests of every artifact).
+- **Determinism:** two executions → **identical digests** (bit-freeze
+  requirement, self-checked by the runner at the end: auto-replay).
+- **Prohibitions:** import/modify `bbbi` or the causal self-test; read hidden
+  state (m̂ never m_true); touch the frozen modules (§3); run any final
+  controller code outside the sealed runner.
+- **Baseline mode:** `P = frozen baseline` (bit-identical non-regression on
+  92_060-92_089 → digest `ddf23cea…`).
+
+---
+
+## 10. Tests to add (diligence D4, list — before any implementation)
+
+1. **Determinism:** 2× replay (virgin eval 93000-93029) → identical digests.
+2. **Baseline non-regression:** baseline mode reproduces `ddf23cea…` bit-identical.
+3. **ω̂_LONG unit:** analytical ramp ω(t)=const → estimate = const (0 tolerance);
+   buffer < W_CAP → `None`; NaN/`missing[]` input → `None`, never imputed.
+4. **Torque saturation:** ∀ cycle, chosen τ ∈ TAU, ≤ τ_max=5.0; θ_cible
+   reachable (`π/2` fallback → `diag` reported).
+5. **Time bound:** never > 50 cycles (200 env steps); clean stop.
+6. **Dev/eval separation:** `{93100-93119} ∩ {93000-93029}` = ∅ (assert).
+7. **JSONL schema:** fixed keys, 0 NaN, per-cycle coherent `missing[]`.
+8. **Seed coherence:** regime(93xxx) == `_draw_hidden` replicated (m,b,ε).
+
+---
+
+## 11. D1-D5 diligence (pre-sealing)
+
+| Diligence | Content | Method |
+|---|---|---|
+| **D1 Scoping** | CE5 audit (§2), Lesson 49, layer-P state of the art | Documentary (DONE in this J0) |
+| **D2 Design** | ω̂_LONG (§5), two-phase policy (§6), sealed parameters | Documentary (DONE) |
+| **D3 Protocol** | Cut-offs (§7), virgin seeds (§8), trap plan | Regime check on 93100-19 + intersections (diligence runner) |
+| **D4 Freeze & non-regression** | Hashes §4 + **bit-identical replay 92_060-92_089 (digest `ddf23cea…`)** | Runner `scripts/diligence_controleur_amorti_preseal.py` (licit measurement, already-measured seeds) |
+| **D5 Documentation** | This Design Doc + frozen spec file + report plan | Runner checks coherence (status, §9 excluded, digests) |
+
+Diligence **D3/D4/D5 = dedicated pre-seal runner** (pattern
+`scripts/diligence_perceptif_v2_preseal.py`). ⚠️ v2 rule: **the pre-seal
+runner must NOT be executed again after sealing.**
+
+---
+
+## 12. Governance & gates
+
+1. ⬛ This draft is submitted to the porteur. **No final code written until:**
+   porteur validation → spec sealing (SHA §9 excluded, frozen file
+   `data/genesis_spec_controleur_amorti.txt`) → D1-D5 diligence PASS → GO.
+2. Milestones: **J1** (module `controller_amorti.py` + P wiring, determinism
+   10/10 on dev 93100-19) · **J2** (baseline non-regression + ω̂_LONG unit tests)
+   · **J3** (full loop, JSONL audit) · **J4** (virgin eval 93000-93029 → verdict).
+   Verdict published POSITIVE/PARTIAL/NEGATIVE **even if NEGATIVE**.
+3. Closure: update `docs/00-Fondations/Architecture Modulaire…` +
+   `docs/INDEX.md` + NeurIPS/ICLR addendum + new Lesson if warranted.
+
+**Links:** [[BBI Methodological Lessons]] · [[Perceptive Encoder v2 J4 Report — Evaluation CE1..CE5 + 60 Traps PP1..PP7 (W gate CP Option 3, R1 mirror, verdict PARTIAL ×3, programme closure)]] · [[Design Doc Perceptive Encoder v2 J0 — Rich channel and state feedback for active manipulation (Lesson 48)]] · [[E-W-C-P-L Overview]] · [[INDEX]]
+
+---

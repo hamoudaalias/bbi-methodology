@@ -1,0 +1,326 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_trading.txt (SHA 5205c8c82a0a110e…) immutable.
+source_fr: "data/genesis_spec_trading.txt"
+sha_source: "5205c8c82a0a110e"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "Trading Extension (Yahoo Finance + FRED) — Canonical Specification (J0' sealed)"
+type: design
+project: BBI
+version: 0.2
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec, trading, yahoo-finance, fred, financial-reasoning, garch]
+---
+
+BBI — TRADING EXTENSION (YAHOO FINANCE + FRED) — CANONICAL SPECIFICATION (J0' sealed)
+Version: 0.2 (J0' SEALED after CP validation — naming correction "CSV BTS" → "Yahoo Finance + FRED", thresholds unchanged)
+Date: 2026-09-10 | Project: BBI | Chef: GO Extension Trading J0
+Status: J0' SEALED — SHA frozen after CP validation; NO amendments post-sealing.
+
+1. SCIENTIFIC QUESTION
+Can BBI reason causally on REAL-TIME FINANCIAL DATA
+(historical volatility, macroeconomic indicators,
+market sentiment), with the SAME primitives as on continuous
+physics and symbolic EU261: H0 (snapshot/restore), Causal
+Touch (measured counterfactual), Causal Module C, E-W-C-P-L
+loop — an architecture that extends, not a collection of programs?
+
+The observation is PARTIAL BY HORIZON: available information
+grows from H-5 to H-0. Some variables remain UNOBSERVED at the
+current horizon — they are DECLARED or the agent responds
+"undetermined" (epistemic honesty), never fabricated.
+
+2. DOMAIN — YAHOO FINANCE + FRED PROTOCOL (FINANCIAL MARKETS)
+One CASE = one SPY trading day: a sequence of macroeconomic and
+technical events, a target volatility regime, and the decision
+horizon. The task, at EACH horizon, is to anticipate the day's
+trading volatility regime and rule:
+    high (volatility > threshold) / low / undetermined
+    direction (up/down): bullish / bearish / undetermined
+
+4 HORIZONS (increasing information, fixed set per horizon):
+    H-5: previous week's macro data (CPI, PPI, PMI, rates)
+    H-3: + technical data (RSI, MACD, Bollinger) + volume
+    H-1: + intraday data (open, high, low, close, volume)
+    H-0: + final state (close, full range) — complete case state
+(variables not yet available at the horizon are DECLARED MISSING
+— see §8 honesty).
+
+4 LEVELS OF CAUSAL COMPLEXITY:
+    N1  direct cause (1 link: e.g. high CPI → high volatility)
+    N2  2-link chain (e.g. rates → volatility → direction)
+    N3  chain + interactive causes (e.g. volume × Bollinger × macro)
+    N4  chain + EXTREME circumstance + missing variable
+
+VOLUMES: 128 main cases + 60 trap cases P1..P7 (pre-registered §8).
+
+3. SYMBOLIC REPRESENTATION — CAUSAL VARIABLES
+6 observable causal variables depending on horizon:
+    macro_i   ∈ {normal, high, extreme}   inflation (CPI/PPI)
+                                           associated EXTREME flag:
+    ext_i     ∈ {no, yes}                 EXTREME circumstance
+                                          (not observable at H-5)
+    taux_i    ∈ {stable, increase, decrease}  policy rates (Fed)
+    volume_i  ∈ {normal, high, very_high}    trading volume
+    bollinger_i ∈ {inside, outside}          Bollinger relative position
+    rsi_i     ∈ {normal, overbought, oversold}  RSI
+
+ONE CAUSAL LINK = a non-nominal variable whose contribution
+to volatility is significant (measured by the COUNTERFACTUAL §6).
+Nominal values: macro=normal, taux=stable, volume=normal,
+bollinger=inside, rsi=normal.
+
+E ENCODING: z = one-hot/ordinal vector of the SET of all
+variables observable at horizon h (missing ones are encoded by the
+token MISSING — never replaced with a value).
+
+4. W MODEL — VOLATILITY PROPAGATION (deterministic, NumPy)
+This is the financial "world": the same deterministic function serves
+as ORACLE (ground truth) and as base belief W (world model).
+
+Realized historical volatility (5 days):
+    σ_5d = sqrt(252) * std(daily_returns[-5:])
+
+Realized historical volatility (20 days):
+    σ_20d = sqrt(252) * std(daily_returns[-20:])
+
+Volatility signal:
+    σ_ratio = σ_5d / σ_20d
+    regime  = high if σ_ratio > 1.5  (pre-registered threshold)
+              low otherwise
+
+Causal contribution (counterfactual delta):
+    Δσ = |σ_ratio(w/intervention) - σ_ratio(w/without intervention)|
+
+Contribution per variable:
+    δ_macro    = contribution of the inflation regime
+    δ_taux     = contribution of rate variation
+    δ_volume   = contribution of abnormal volume
+    δ_bollinger = contribution of band breakout
+    δ_rsi      = contribution of extreme RSI
+    δ_ext      = contribution of extreme circumstance
+
+THE ORACLE (ground truth) IS THE W MODEL ITSELF (CP vigilance 3.2):
+the same deterministic function §4 serves as oracle and as base
+belief. The oracle is NOT a complete case state (unlike EU261) —
+it is the target regime computed on FROZEN data §14. The W model
+must be calibrated so that the oracle is NON-TRIVIAL but
+ACHIEVABLE: diligence §14 must verify that the distribution of
+σ_ratio over the corpus produces varied regimes (high AND low,
+not a single dominant regime).
+
+5. FINANCIAL H0 PROTOCOL (snapshot/restore of data)
+snapshot(case) = deterministic copy of the financial state (dates, prices,
+volumes, indicators, target regime) + step counter.
+restore(case, snap) = restores the EXACT state, bit-identical.
+replay: snapshot → advance 3 periods (arbitrary sequence) → restore
+→ advance 3 again → final state bit-identical (diff == 0).
+
+COUNTERFACTUAL (Financial Causal Touch): from a snapshot,
+re-simulate W by fixing ONE variable to its nominal value, then
+measure Δσ = σ_ratio_nominal − σ_ratio_real = causal contribution.
+  e.g.: "if inflation had not been extreme (macro:=normal)" →
+  σ' = W(case | macro:=normal);  contribution = σ − σ'.
+Symmetric COUNTERFACTUAL pair (always both removal of the cause
+AND its injection on nominal state) → audit control.
+
+6. C MODULE — FINANCIAL COUNTERFACTUALS + JSON CAUSAL CHAINS
+C is the ONLY entity authorized to use the ORACLE (ground truth): it
+is the "measurement branch" — like the H0 pair in physics. At horizon h, C:
+  1. reconstructs the full timeline H-5 → H-0 via
+     counterfactual of the most probable link (Δσ of each non-nominal
+     variable, deterministic ranking);
+  2. emits the EXPLICIT CAUSAL CHAIN in JSON format:
+       {"day": YYYY-MM-DD, "horizon": h, "prediction": "high",
+        "p": 0.82, "chain": [
+          {"node": "macro", "delta_sigma": 0.35,
+           "direction": "inflation_extreme -> volatilite_haute"},
+          {"node": "volume", "delta_sigma": 0.12,
+           "direction": "volume_eleve -> volatilite_haute"} ],
+        "missing": ["ext_1"],
+        "direction": "bearish"}
+  3. emits the direction (bullish/bearish/undetermined) with 3 values.
+
+Sealed chain format; delta_sigma = measured counterfactual
+contribution.
+
+7. EXTENDED E-W-C-P-L LAYERS
+E: encodes the observable subset in §3 format (z, MISSING token).
+W: predicts volatility propagation (same equation §4 as
+    the oracle; belief = inferred/counterfactual values,
+    missing variables remain missing for W until an observation
+    at the horizon reveals them).
+C: financial counterfactual §6 + causal chain JSON + direction.
+P: plans ANTICIPATION across the 4 horizons: binary prediction from
+    a DETERMINISTIC decision rule on (W's σ_ratio, C's chain);
+    at horizons where σ_ratio is underdetermined → "undetermined".
+L: log (JSONL audit): per horizon, decision, σ_ratio, causal
+    chain, declared missing, direction, cost, Δ vs oracle (after H-0),
+    calibration fit, E/W/C/P/L accounting.
+
+This is the same architecture as on continuous physics and symbolic
+EU261: H0, Touch (counterfactual), cognitive loop,
+manipulation = anticipation; only the nature of the data changes
+(financial continuous vs continuous RK4 vs discrete symbolic).
+
+8. TRAP CASES P1..P7 AND EPISTEMIC HONESTY (60 cases)
+Pre-registered typology (one or more markers per trap):
+    P1 spurious seasonal correlation (e.g.: "it's always bullish
+       in January" — NON-causal, historical pattern without mechanism)
+    P2 apparent reverse causation (volatility creates a Fed reaction,
+       not the other way around — the agent must identify the true
+       direction)
+    P3 non-causal co-occurring correlation (event co-present but
+       without link: viral tweet, social movement) — the agent must
+       IGNORE it in its causal chain (robustness §9-E)
+    P4 confounding factor (a common cause triggers BOTH inflation
+       AND volatility via a third link) — C must identify it
+       instead of believing in 2 independent causes (robustness §9-E)
+    P5 proxy (correlated but non-causal variable: number of financial
+       tweets correlated with volume without causal contribution;
+       the agent must DECLARE it proxy, not include it in the chain)
+    P6 REAL MISSING VARIABLE (the true cause is not observable at
+       the horizon; any chain emitted without declaring it is false —
+       robustness §9-E)
+    P7 UNDETERMINATION (information at the horizon is insufficient to
+       decide high/low; the VALID RESPONSE is "undetermined",
+       any firm prediction is FABRICATION — honesty §9-F)
+The "undetermined" response is ALWAYS legitimate (Axis F); it counts
+as an honest response, not as a prediction failure.
+
+9. PRE-REGISTERED METRICS (axes A-F)
+AXIS A — BRIER: average Brier by horizon on P(high) vs ORACLE.
+   References: R0 = frequency-based prediction (base rate — always
+   "high" if base rate > 50%, otherwise "low");
+   R1 = naive propagation (σ_ratio_h-1 × 1.05, no chain nor
+   counterfactual); R2 = GARCH(1,1) model (standard statistical
+   baseline). The AGENT must beat R2 at H-1 and R0 at H-5 (cut-off §10).
+AXIS B — CALIBRATION ≤ 0.10: |mean(p) − actual frequency| per bin
+   of 0.05 on 10 bins, worst bin. Measured on the 128 main cases.
+AXIS C — USEFUL ANTICIPATION (OBJECTIVE): the median lead time between
+   the "high" prediction and the effective volatility signal must be ≥ 24
+   hours (1 trading day). Beyond the uncertainty zone (±10% of the
+   threshold), the prediction must be stable.
+AXIS D — CAUSAL QUALITY ≥ 2.2/3: score 0..3 per case — sum over
+   TRUE LINKS identified (true cause→Δσ pairs present in the
+   JSON chain) − penalty for FABRICATED links (non-causal, P3).
+   Normalized score 0..3; ≥ 2.2 required (73%).
+AXIS E — ROBUSTNESS (traps P3/P4/P6): Brier on trap cases vs
+   Brier on main cases; degradation ≤ 10% (cut-off §10);
+   and NO false causal link on P3.
+AXIS F — EPISTEMIC HONESTY (P7) ≥ 80%: fraction of P7 cases where
+   the "undetermined" response is emitted.
+
+UNCERTAINTY ZONE (vigilance 2.2): threshold ± 10% of the volatility
+   threshold (σ_ratio = 1.5 → zone [1.35, 1.65]). In this zone, the agent
+   MUST emit "undetermined" — a firm prediction is FABRICATION. Cases in
+   the zone are PLACED IN A SEPARATE BATCH (outside main scoring) — verified
+   at diligence §14.
+
+CRITICAL BAND (vigilance 2.3): threshold ± 20% of the threshold
+   (σ_ratio ∈ [1.2, 1.8]). The band contains ≥ 30% of the corpus to
+   ensure the test is not trivial — VERIFIED at diligence §14
+   (σ_ratio distribution documented).
+
+ADAPTIVE HORIZON (vigilance 2.4): the 4 horizons are fixed by
+   definition but causal deltas adapt to the horizon (macro available at
+   H-5, technical at H-3, intraday at H-1, complete at H-0).
+
+REFERENCES (vigilance 2.5):
+   R0 = historical frequency (base rate on SPY data 2020-2024)
+   R1 = persistent volatility (σ_ratio_h-1 × 1.05, naive persistence)
+   R2 = GARCH(1,1) (standard statistical model, omega + alpha + beta)
+
+6 CAUSAL VARIABLES (vigilance 2.6):
+   macro, taux, volume, bollinger, rsi, ext
+
+10. CUT-OFF (pre-registered — NEGATIVE if ANY SINGLE ONE)
+  1. Axis A: Brier(agent) > Brier(R2) at H-1   OR  > Brier(R0) at H-5
+  2. Axis B: calibration > 0.10
+  3. Axis D: causal quality < 2.2/3
+  4. Axis E: P3 degradation > 10%
+  5. Honesty axiom: "undetermined" response forbidden on any case
+     where the agent could have inferred the value via closed counterfactual —
+     measured by the NON-concealment axiom (P7 are the ONLY
+     cases where it is expected).
+GLOBAL VERdict: PASS if no cut-off triggered; otherwise NEGATIVE.
+
+11. RESERVED SEEDS (PRIME families — verify 87000+ unused)
+    87000..87009  financial replay determinism (H0 §5, 10 seeds)
+    87010..87019  financial H0 snapshot/restore (10 seeds)
+    87020..87147  main cases 128 (N1..N4, 32 per level) — 1 seed/case
+    87160..87219  trap cases 60 (P1..P7, seeds distributed)
+    87220..87239  anticipation pipeline 4 horizons (20 seeds, J3)
+    87240..87259  overall evaluation/scoring (20 seeds)
+    87300..       reserve (never consumed without demonstration)
+
+12. ABSOLUTE PROHIBITIONS
+0 core/other-phase modification. 0 LLM in the loop (P deterministic,
+W-only). 0 external engine — pure NumPy (no SciPy/pandas applied to
+reasoning). The ORACLE (complete state) is readable ONLY by C (measurement
+branch, counterfactual) and L (diagnostic) — E/W/P read only the
+horizon subset. No cases outside families. Calibration fit
+FORBIDDEN (thresholds/p are sealed, not adjusted). Missing never replaced
+with a fabricated value (MISSING token, "undetermined" response).
+Immutable SHA-256 spec once sealed.
+
+13. FINGERPRINT
+immutable spec SHA-256 (this file) — SEALED constant in Design Doc
+Extension Trading J0 §(fingerprint) and replayed by T_trad_0.
+
+14. DATA SOURCES (free providers) — DATA FREEZE (vigilance CP 3.1)
+YAHOO FINANCE (yfinance):
+  - SPY OHLCV data (Open, High, Low, Close, Volume)
+  - Period: 2020-01-01 to 2026-08-31
+  - Frequency: daily
+
+FRED (Federal Reserve Economic Data):
+  - CPI (Consumer Price Index): CPIAUCSL
+  - PPI (Producer Price Index): PPIACO
+  - PMI (Purchasing Managers Index): MANEMP
+  - Fed Funds Rate: FEDFUNDS
+  - Period: 2020-01-01 to 2026-08-31
+
+ACCESS CONSTRAINTS: 0 API key (public data), 0 cost, 0 significant rate
+limit (low volumes: ~1500 SPY days + ~6 macro).
+
+DATA FREEZE — J1 PROTOCOL (data is REAL, not simulated;
+determinism is guaranteed by the freeze, not by construction):
+  1. Download ONCE at J1 (SPY OHLCV + 4 FRED series).
+  2. Local storage in data/trading_spy_fred_2020_2024.npz (float64,
+     ISO dates, sorted series; columns = open/high/low/close/volume/CPI/
+     PPI/PMI/FEDFUNDS).
+  3. SHA-256 of the dataset computed, recorded in Design Doc J0' and
+     replayed by T_trad_0d (datasets SHA stable on replay).
+  4. Financial H0 tested on FROZEN data (no re-downloading).
+  5. Any subsequent re-download requires a CP DECISION (the freeze
+     is the determinism; re-downloading is an amendment).
+
+GARCH(1,1) (reference R2): PURE NumPy implementation required (0 SciPy/
+pandas in reasoning, §12 prohibition no. 3). Parameters calibrated on
+the FROZEN corpus in a DETERMINISTIC manner (iterative maximum
+likelihood estimation, fixed seeds, fixed tolerance); the calibration
+is documented as a reference, NOT as an agent fit (§12 prohibition
+no. 7 applies to the AGENT, not to the reference).
+
+THRESHOLDS FOR THE 6 CAUSAL VARIABLES (vigilance CP 5.3): defined
+DETERMINISTICALLY at J1 and frozen in spec before any measurement:
+  macro     : annual CPI > 2%      → high; > 4% → extreme
+  taux      : FEDFUNDS delta > +25bp / week → increase; < −25bp → decrease
+  volume    : volume_j > 1.5× 20d_average  → high; > 2× → very_high
+  bollinger : close outside [MA20 − 2σ, MA20 + 2σ] → outside
+  rsi       : rsi_14 > 70 → overbought; < 30 → oversold
+  ext       : (reserved — extreme event documented, P4/P6 seeds)
+All thresholds above are EXAMPLES TO FREEZE at J1 in this
+spec (documented amendment 0.2 → 0.3 if applicable, BEFORE any
+measurement) — no threshold is adjustable after sealing.
+
+DILIGENCE §14 (pre-sealing J0') — required verifications (vigilance CP
+3.2/3.3):
+  D1. σ_ratio distribution on the corpus: varied regimes (high AND
+      low, both ≥ 20%), documented.
+  D2. Critical band [1.2, 1.8]: ≥ 30% of the corpus.
+  D3. Uncertainty zone [1.35, 1.65]: identified, cases placed in a
+      separate batch (outside main scoring), documented.
+  D4. Touch/freeze: dataset SHA stable on replay; H0 bit-identical on
+      frozen data.

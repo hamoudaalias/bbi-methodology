@@ -1,0 +1,215 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_2link.txt (SHA 695e721f222bec7f…) immutable.
+source_fr: "data/genesis_spec_2link.txt"
+sha_source: "695e721f222bec7f"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "GENESIS Beta — Canonical Specification, Frozen (J0 pre-registered)"
+type: design
+project: BBI
+version: 1.1
+status: frozen — English translation of frozen spec
+tags: [translation, en, sealed-spec, beta, genesis, 2link, planar-arm]
+---
+BBI — GENESIS BETA — CANONICAL SPECIFICATION FROZEN (J0 pre-registered)
+Version: 1.1 (v2 constants, validated by J0 diligence before sealing)
+Date: 2026-09-09 | Project: BBI | Chef: GO Beta-J0
+Status: FROZEN. NO modifications after this file.
+
+1. SCIENTIFIC QUESTION
+Does BBI preserve H0 bit-identical, Causal Touching, and the
+E-W-C-P-L loop when the body goes from 1 degree of freedom (pendulum Alpha) to
+2 degrees of freedom (2-segment planar arm, hidden terminal mass)?
+
+2. PHYSICAL MODEL (2-segment planar arm, pure NumPy, float64)
+EQUATION OF MOTION (standard form):
+    M(q)·q̈ + C(q,q̇)·q̇ + G(q) + B·q̇ = τ
+    q = [q1, q2] (rad), q̇ = [ω1, ω2] (rad/s)
+
+CONVENTIONS (FROZEN):
+- Vertical plane (gravity pointing downward).
+- q1 measured from the DOWNWARD vertical (hanging = 0 = stable equilibrium).
+- q2 RELATIVE; direction of segment 2 = q1+q2. q2 = 0 = segments aligned.
+- Trigonometric positive direction; τ_i > 0 = q_i increasing.
+
+PHYSICAL CONSTANTS (FROZEN):
+    g  = 9.81 m/s²
+    l1 = 0.400 m   (segment 1)
+    l2 = 0.400 m   (segment 2)
+    m1 = 1.00 kg   (segment 1 KNOWN, uniform rod)
+    m2 = unknown, HIDDEN VARIABLE ∈ [0.5, 5.0] kg (uniform rod,
+         terminal mass / payload)
+    b1 = 0.80 N·m·s (KNOWN viscous friction, fixed)
+    b2 = 0.80 N·m·s (idem)
+    dt = 0.02 s (50 Hz) — justified: continuity with Alpha; inertias
+         scaled (l=0.40, m1=1.0) so a_max·dt ≃ 0.2 rad/s
+         (RK4 stable, 5000 steps verified), probe response ~0.2–0.31
+         rad/s measurable in float64.
+Uniform rods: a_i = l_i/2, I_i = m_i·l_i²/12.
+
+M(q) (c2 = cos(q2)):
+    M11 = m1·l1²/3 + m2·(l1² + l2²/3 + l1·l2·c2)
+    M12 = m2·(l2²/3 + (l1·l2/2)·c2)
+    M22 = m2·l2²/3
+
+C(q,q̇) (h = −m2·l1·(l2/2)·sin(q2)):
+    C11 = h·q̇2 ;  C12 = h·(q̇1 + q̇2) ;  C21 = −h·q̇1 ;  C22 = 0
+
+G(q):
+    G1 = −(m1·a1 + m2·l1)·g·sin(q1) − m2·a2·g·sin(q1+q2)
+    G2 = −m2·a2·g·sin(q1+q2)
+
+B : diag(b1, b2) = diag(0.8, 0.8)
+
+INTEGRATOR: homemade RK4, float64, step dt, q wrapped on [−π, π].
+q̈ = M(q)^{−1}·(τ − C·q̇ − G − B·q̇).
+
+ENERGY (deposited RAW in the world, as in Alpha):
+    cum_energy += (τ1² + τ2²) at each step (N²·m²·dt).
+    Never projected; the audit recomposes it exactly.
+
+3. ACTIONS (FROZEN)
+τ1, τ2 ∈ {−2.5, 0.0, +2.5} N·m → 9 discrete actions.
+Exact table:
+    a   τ1    τ2        a   τ1    τ2        a   τ1    τ2
+    0  −2.5  −2.5       3   0.0  −2.5       6  +2.5  −2.5
+    1  −2.5   0.0       4   0.0   0.0       7  +2.5   0.0
+    2  −2.5  +2.5       5   0.0  +2.5       8  +2.5  +2.5
+    4 = NULL (action Δ = 0 applied during the Pair, then revert).
+
+4. OBSERVATION / INITIALIZATION / H0 (FROZEN)
+COMPLETE OBSERVATION: o = [q1, q2, ω1, ω2].
+INITIAL STATE (reset seed): m2 drawn from [0.5, 5] via rng(100000+seed);
+      H0 / Touching: rest [0, 0] rad, [0, 0] rad/s.
+      Manipulation: rest (defensive convention §4.1/C3 of the Alpha
+      report, validated by the Chef: every execution starts at rest).
+      Robustness to perturbed start is measured and reported as a
+      supplement (non-blocking), as for Alpha C5b.
+
+H0 CONTINUOUS — snapshot/restore gate: q, q̇, t, m2 (hidden parameter),
+and physical constants. Test: snapshot step 10 → advance 30 steps →
+restore step 10 → advance 30 steps → FINAL state bit-identical (diff
+< 1e-12).
+
+5. CAUSAL TOUCHING BETA (FROZEN) — 1 pair H0 = probe + null, W inversion
+PROTOCOL (1 pair suffices, ANALYSIS below):
+    rest → snapshot → probe (τ=(+2.5, 0) N·m, 1 step) → Δz_world
+    (causal differential vs null projected action Δ) → restore (H0).
+
+ALGEBRAIC ANALYSIS (continuous, dt→0) — at rest q=[0,0], q̇=[0,0]:
+    A = m1·l1²/3 ;  B = l1² + l2²/3 + l1·l2 ;  C = l2²/3 + (l1·l2)/2 ;
+    D = l2²/3.
+    Δω1 = p·D·dt / (A·D + m2·(B·D − C²))
+    Δω2 = −p·C·dt / (A·D + m2·(B·D − C²))
+    KINEMATIC INVARIANT: Δω2/Δω1 = −C/D = −2.5 (independent of m2).
+    CLOSED FORM: m2 = (p·D·dt/Δω1 − A·D)/(B·D − C²).
+    DEGREES OF FREEDOM: 1 unknown, 4-vector response (q1,q2,ω1,ω2) →
+    overdetermined → 1 pair suffices.
+
+MEASURED (discrete RK4 world, J0 diligence): RK4 integration of the step
+couples the terms → the discrete response DIFFERS from the dt→0 form
+(measured invariant −2.06…−2.40 ≠ −2.5; Δω1 ∈ [0.20, 0.31] rad/s) and the
+Δω1(m2) map exhibits a local non-monotonic point (m2 ≃ 0.6). FROZEN
+MITIGATION: inversion via W GRID on the complete vector — m ∈ {0.50, 0.51,
+…, 5.00} (451 points), argmin ‖Δz_W(m) − Δz_world‖². Deterministic,
+exact model, W-only. Accuracy demonstrated: err 0.00 % on m = 1.0,
+2.5, 4.0 (≪ 20 % criterion).
+
+CRITERION: relative error m2 < 20 % on {1.0, 2.5, 4.0} kg, 30/30 seeds
+(81020..81029 m=1.0; 81030..81039 m=2.5; 81040..81049 m=4.0).
+
+6. MANIPULATION TASK (FROZEN)
+FIXED TARGET: q_target = [0.08, −0.08] rad, TENABLE for all m2 ∈
+[0.5, 5.0] — justified by the static capacity equation (no tuning):
+    τ_hold1(q1,q2) = (m1·a1 + m2·l1)·g·sin(q1) + m2·a2·g·sin(q1+q2)
+    τ_hold2       =                       m2·a2·g·sin(q1+q2)
+At the target, sin(q1+q2) = sin(0) = 0 → τ_hold2 = 0 for all m2.
+    max_{m2=5} τ_hold1(0.08, −0.08) = 2.2·9.81·sin(0.08) = 1.724 N·m
+    ≤ 2.5 (margin 0.776, 31 %).
+REJECTION OF [0.3, −0.3] (Chef's example): τ_hold1 = 2.2·9.81·sin(0.3)
+= 6.38 N·m > 2.5 → UNREACHABLE statically for m2 ≥ 2 (measured), hence
+the reduced target, consistent with the Chef's "for example" and his
+criterion "any redefinition justified by physical equation".
+
+P CONTROLLER (FROZEN): 2D sliding surface σ = (q − q_target) + λ·q̇;
+at each step, P predicts 2 steps ahead (W, m2_agent belief = Touching) the
+9 actions and chooses the argmin of ‖σ′‖ + 0.05·‖ω′‖, tiebreak ‖τ‖ then
+index. λ = 0.28 FROZEN — measured plateau [0.25, 0.33] giving 20/20 on
+the 20 seeds before sealing; 0.28 is inside the plateau (no re-search
+J4, simple confirmation).
+
+CRITERION: ‖q − q_target‖ < 0.15 rad in ≤ 100 steps, 20/20 seeds
+(81200..81219). EXPECTED measured (J0 diligence): worst 0.1131 rad
+(margin 25 %), independent of m2 belief (Touching ±20 % does not
+alter the result).
+IF PARTIAL (not expected): allowed only if justified by the static
+equation above and measured (never by threshold tuning).
+
+7. E-W-C-P-L LOOP (FROZEN)
+E: z = [q1, q2, ω1, ω2] (≥ 4 operations).
+W: RK4 2-link sealed, m2_agent belief = Touching (grid), known fixed
+friction (≥ 6 operations); predicts Δz and the 2-step state for P.
+C: H0 Pair (probe vs null) on the world (≥ 2 operations);
+W vs C fidelity (Δz vectors).
+P: positional planner described §6 (≥ 9 operations).
+L: JSONL audit (≥ 1 operation).
+AUDIT: raw energy, exact recomposition Σ(τ1²+τ2²).
+
+8. SEEDS (FROZEN, PRIME families)
+    81000..81009   RK4 2-link determinism         (10 seeds)
+    81010..81019   Multi-DOF continuous H0        (10 seeds)
+    81020..81029   Causal Touching m2 = 1.0 kg    (10 seeds)
+    81030..81039   Causal Touching m2 = 2.5 kg    (10 seeds)
+    81040..81049   Causal Touching m2 = 4.0 kg    (10 seeds)
+    81100..81119   E-W-C-P-L Loop                 (20 seeds)
+    81200..81219   Manipulation q_target           (20 seeds)
+    81300..        RESERVED (never consumed without demonstration)
+
+9. SUCCESS CRITERIA (FROZEN)
+    C1 — RK4 2-link determinism   : 10/10 seeds diff < 1e-12
+    C2 — Multi-DOF continuous H0   : 10/10 seeds bit-identical, diff < 1e-12
+    C3 — Causal Touching m2       : error < 20 % (30/30 seeds)
+    C4 — E-W-C-P-L Loop           : 100 cycles × 20 seeds, 0 crash,
+                                     0 NaN/Inf, W/C fidelity ≥ 0.9,
+                                     τ² energy traced/recomposed exactly
+    C5 — Manipulation q_target    : ‖q−q_target‖ < 0.15 rad ≤ 100 steps
+                                     (20/20); PARTIAL allowed if
+                                     justified by static equation
+                                     (measured margin)
+
+10. CUT-OFF (FROZEN)
+NEGATIVE verdict if C1 OR C2 OR C3 OR C4 fails.
+Manipulation C5: SUCCESS / PARTIAL (not cut-off), any redefinition
+justified by PHYSICAL equation, never by threshold tuning.
+POSITIVE verdict otherwise.
+
+11. TESTS TO BE DEFINED (FROZEN)
+    T_beta_1  RK4 2-link determinism: 2 identical runs → diff < 1e-12
+    T_beta_2  Multi-DOF bit-identical H0 (q, q̇, t, m2, constants)
+    T_beta_3  Causal Touching m2 < 20 % (30/30), non-forced error
+    T_beta_4  τ² Energy: Σ(τ1²+τ2²) traced, recomposition == cum_energy,
+              no projection, monotonicity, cost (q−q_target)² + 0.01·τ²
+    T_beta_5  E-W-C-P-L Loop: 100 cycles × 20 seeds, 0 crash, 0 NaN,
+              fidelity ≥ 0.9, E≥4/W≥6/C≥2/P≥9/L≥1 compatibility
+    T_beta_6  Manipulation: ‖q − q_target‖ < 0.15 rad ≤ 100 steps (20/20
+              or PARTIAL equation-justified)
+    T_beta_7  Complete audit (sealed fields, Phase 13 codebook intact,
+              bit-identical determinism recorded)
+    T_beta_8  0 LLM / 0 external engine (NumPy only) / 0 Rust / codebook
+              + spec SHA intact after each measurement
+
+12. ABSOLUTE PROHIBITIONS (FROZEN)
+1. 0 modification to the Rust kernel / Phase 13 codebook.
+2. 0 LLM in the cognitive loop (P deterministic, W-only).
+3. 0 external physics engine: pure NumPy only (no MuJoCo,
+   PyBullet, Brax, SciPy.integrate).
+4. FROZEN friction (known): do NOT hide m2 + b simultaneously (at
+   rest state, a single impulse reveals inertia, not friction —
+   friction is measured by temporal dissipation: Gamma program).
+5. No seeds outside frozen families; reserve 81300+ not consumed.
+6. No threshold redefinition without physical equation + measurement.
+7. Energy deposited raw in the world, never projected.
+8. Immutable spec SHA-256 (this file).
+
+GENESIS BETA REPORT: verdict, Lesson 36, addendum, Audit Journal,
+INDEX v1.10.

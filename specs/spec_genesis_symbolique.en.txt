@@ -1,0 +1,282 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_symbolique.txt (SHA 183845f9122d68e9…) immutable.
+source_fr: "data/genesis_spec_symbolique.txt"
+sha_source: "183845f9122d68e9"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "Temporal Symbolic Extension — Canonical Specification (J0' sealed)"
+type: design
+project: BBI
+version: 0.2
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec, symbolic, eu261, temporal-reasoning, causal-chain]
+---
+
+BBI — TEMPORAL SYMBOLIC EXTENSION — CANONICAL SPECIFICATION (J0' sealed)
+Version: 0.2 (SEALED after diligence §14 — operational amendment Axis B, thresholds unchanged)
+Date: 2026-09-09 | Project: BBI | Lead: GO Symbolic extension J0 (post-Delta closure)
+Status: J0' SEALED — SHA frozen after diligence §14; NO post-sealing amendments.
+
+1. SCIENTIFIC QUESTION
+Can BBI reason causally about DISCRETE OPERATIONAL events
+and temporal ones (flight delays, EU261 protocol), using the SAME
+primitives as for continuous physics: H0 (snapshot/restore),
+Causal Touch (measured counterfactual), Causal Module C, the
+E-W-C-P-L loop — an architecture that extends, not a collection of
+programs?
+
+Observation is PARTIAL BY HORIZON: available information grows
+from J-1 to H-0. Some variables remain UNOBSERVED at the current
+horizon — they are DECLARED or the agent answers "undetermined"
+(epistemic honesty), never invented.
+
+2. DOMAIN — EU261 PROTOCOL (DELAY ANTICIPATION)
+A CASE = a passenger file: a rotation chain (1 to 3 flights), the
+discrete events that delay each flight, a head flight (the passenger's),
+and the decision horizon. The task, at EVERY horizon, is to anticipate
+the final arrival delay A of the head flight and rule:
+    EU261 eligible (A ≥ 180 min)  /  no  /  undetermined
+    exemption (extraordinary circumstance): no / yes / undetermined
+
+4 HORIZONS (increasing information, fixed set per horizon):
+    J-1: schedule + coarse-grain weather (clear/heavy/extreme) + scheduled crew
+    H-6: + current rotation upstream delay (if 1st flight: "none")
+    H-2: + delayed slot + confirmed crew reassignment
+    H-0: + gate status (boarding) — complete case state
+(variables not yet available at the horizon are DECLARED MISSING —
+see §8 honesty).
+
+4 LEVELS OF CAUSAL COMPLEXITY:
+    N1  single flight, direct cause           (1 causal link)
+    N2  2-rotation chain, deep upstream cause
+    N3  chain + interactive causes (weather×slot, downstream crew-delay)
+    N4  chain + external exemption circumstance + missing variable
+
+VOLUMES: 128 main cases + 60 trap cases P1..P7 (pre-registered §8).
+
+3. SYMBOLIC REPRESENTATION — DISCRETE CAUSAL VARIABLES
+Per flight i in the chain, 4 discrete variables + 1 hidden flag:
+    rot_i   ∈ {0, 30, 90}            delay inherited from upstream rotation
+                                     (0 = "on time"; N1: rot=0)
+    method_i ∈ {clear, heavy, extreme}   weather; associated EXT flag:
+    ext_i   ∈ {no, yes}              EXEMPTING circumstance (hidden,
+                                     visible at the horizon depending on the case)
+    crew_i  ∈ {ok, reassigned}       crew
+    slot_i  ∈ {ok, delayed}          slot
+
+ONE CAUSAL LINK = a non-nominal variable whose contribution to A
+is ≥ 30 min (measured by the COUNTERFACTUAL §6). Nominal values:
+rot=0, weather=clear, crew=ok, slot=ok.
+
+ENCODING E: z = one-hot/ordinal vector of the ENTIRE set of
+observable variables at horizon h (missing ones are encoded with the
+MISSING token — never replaced by a value).
+
+4. MODEL W — TEMPORAL DELAY PROPAGATION (deterministic, NumPy)
+This is the "symbolic world": the same deterministic function serves
+as ORACLE (ground truth) and as base belief W (world model). Delays
+in minutes, ints, float64 internal. UNARY (chain):
+
+D_i  = round( r_i · max(0, D_{i−1} − R_i ) ) + δ_M(weather_i) + δ_EQ(crew_i) + δ_CR(slot_i)
+  r_i  ∈ {0.60, 0.80, 1.00}   propagation factor (fixed by seed)
+  R_i  ∈ {0, 15, 30, 60}      recovery buffer (fixed by seed)
+  δ_M  clear=0  heavy=45  extreme=120
+  δ_EQ ok=0  reassigned=90
+  δ_CR ok=0  delayed=30
+D_0  = 0 (chain start: first flight on time at morning taxi).
+
+Arrival delay of the head flight (i = last observed flight in the
+passenger's chain):
+A = D_i + 0.05·D_i + σ_M(weather_i)
+  σ_M clear=0  heavy=0  extreme=+60     (en-route overload, if extreme)
+A  = round(A)  ∈ [0, 480]
+
+EU261 EXEMPTION (extraordinary circumstance):
+  exempt = (ext_i == yes) AND (weather_i == extreme)   (only pre-registered form)
+eligible-compensation = (A ≥ 180) AND (exempt == no)
+
+THE ORACLE (nature) sees EVERYTHING (complete case state); THE AGENT at
+horizon h only sees the subset §2. Hidden values of the case (ext_i, and
+any variable unavailable at the horizon) are inaccessible — prediction
+proceeds through WORLDMODELING (belief) and COUNTERFactual C.
+
+5. SYMBOLIC H0 PROTOCOL (event snapshot/restore)
+snapshot(case) = deterministic copy of the event state (rot, weather,
+ext, crew, slot, D_i, R_i, r_i, schedule) + step counter.
+restore(case, snap) = restores the EXACT state, bit-identical.
+replay: snapshot → advance 3 events (arbitrary sequence) → restore →
+re-advance 3 → final state bit-identical (diff == 0).
+Partial observation by horizon does NOT change the mechanism: restore
+reverts the complete symbolic state; the agent only observed a subset.
+
+COUNTERFACTUAL (Symbolic Causal Touch): from a snapshot, re-simulate W
+fixing ONE variable to its nominal value, then measure
+ΔA = A_nominal − A_actual CERT = causal contribution of the link.
+  ex: "if the upstream rotation had not been delayed (rot=0)" →
+  A' = W(case | rot:=0);  contribution = A − A'.
+Symmetric COUNTERFACTUAL pair (always BOTH the removal of the cause AND
+its injection on nominal state) → audit control (agreement ≈ 0).
+
+6. MODULE C — SYMBOLIC COUNTERFACTUALS + CAUSAL CHAINS (JSON)
+C is the ONLY entity authorized to use the ORACLE (ground truth): it is
+the "measurement branch" — like the H0 pair in physics. At horizon h, C:
+  1. reconstructs the full timeline J-1 → H-0 by counterfactual of
+     the most probable link (ΔA of each non-nominal variable, deterministic
+     ranking);
+  2. emits the EXPLICIT CAUSAL CHAIN in the protocol's JSON format:
+       {"flight": X, "horizon": h, "prediction": "eligible",
+        "p": 0.87, "chain": [
+          {"node": "rotation", "idx": 1, "delta_A": 74,
+           "direction": "rotation_upstream -> head_flight"},
+          {"node": "weather", "idx": 2, "delta_A": 45,
+           "direction": "weather_heavy -> D2 -> A"} ],
+        "missing": ["ext_1"],
+        "exemption": "no"}
+  3. emits the 3-valued EXEMPTION verdict: no / yes / undetermined.
+Sealed chain format; delta_A = measured counterfactual contribution.
+
+7. EXTENDED E-W-C-P-L LAYERS
+E: encodes the observable subset in the §3 format (z, MISSING token).
+W: predicts delay propagation along the chain (same equation §4 as
+    the oracle; belief = inferred/counterfactual values, missing remain
+    missing for W until an observation horizon reveals them).
+C: symbolic counterfactual §6 + causal chain JSON + exemption.
+P: plans ANTICIPATION across the 4 horizons: binary prediction from
+    a DETERMINISTIC decision rule on (p from W, chain from C);
+    at horizons where p is underdetermined → "undetermined" (honesty).
+L: log (JSONL audit): per horizon, decision, p, causal chain,
+    declared missing, exemption, cost, Δ vs oracle (after H-0),
+    calibration fit, E/W/C/P/L accountability.
+
+This is the same architecture as for continuous physics: H0, Touch
+(counterfactual), cognitive loop, manipulation = anticipation; only
+the nature of the events changes (discrete symbolic vs continuous RK4).
+
+8. TRAP CASES P1..P7 AND EPISTEMIC HONESTY (60 cases)
+Pre-registered taxonomy (one or more markers per trap):
+    P1 spurious seasonal correlation (e.g. a "already delayed at the same
+       week last year" in the file — NOT causal)
+    P2 apparent reversed causality (the delay triggers an alarming weather
+       update, not the other way around)
+    P3 non-causal co-occurring correlation (co-present event but no link:
+       coffee, slot statistics) — the agent must IGNORE it in its causal
+       chain (robustness §9-E)
+    P4 confounding factor (a common cause ALREADY triggers both weather and
+       delay through a third link) — C must identify it instead of believing
+       in 2 independent causes (robustness §9-E)
+    P5 proxy (correlated but non-causal variable: crew processing speed
+       correlated with delay without contribution; the agent must DECLARE it
+       proxy, not include it in the chain)
+    P6 REAL MISSING VARIABLE (the true cause is not observable at the
+       horizon; any chain emitted without declaring it is false —
+       robustness §9-E)
+    P7 UNDETERMINATION (horizon information is insufficient to decide
+       eligible/ineligible; the VALID RESPONSE is "undetermined", any
+       firm prediction is FABRICATION — honesty §9-F)
+The "undetermined" response is ALWAYS legitimate (Axis F); it counts
+as an honest answer, not as a prediction failure.
+
+9. PRE-REGISTERED METRICS (Axes A–F)
+AXIS A — BRIER: mean Brier score per horizon on P(eligible) vs ORACLE.
+   References: R0 = trivial predictor (base rate / always ineligible);
+   R1 = NAIVE linear propagation (A ≈ 1.05·D_last_observed, without chain
+   or counterfactual). The AGENT must beat R1 at H-2 and R0 at J-1
+   (cutoff §10).
+AXIS B — CALIBRATION ≤ 0.10: |mean(p) − actual frequency| per bin
+   of 0.05 over 10 bins, worst bin. OPERATIONAL DEFINITION (amendment
+   v0.2, diligence §14): bins with n ≥ 5, measured on the 128 main cases
+   (J4: 128 + 60 traps). The SATURATION bin — trivial point-mass p = 0.50
+   shared rigorously by all its predictions, resulting from the
+   NON-REVELATION of a variable that alone determines eligibility (hidden
+   ext on head flight at extreme weather; generative prior P(ext|extreme)=0.50,
+   §4) — is EXCLUDED from the worst bin and reported SEPARATELY with its n
+   and its standard error (SE = 0.5/√n). Justification: p is exactly correct
+   BY CONSTRUCTION (marginalization of the sealed generative); the measured
+   gap is sampling noise (z ≤ 1.9 measured here), not a model error.
+   Threshold 0.10 UNCHANGED for all other bins.
+AXIS D — CAUSAL QUALITY ≥ 2.2/3: a 0..3 score per case — sum over the
+   TRUE LINKS identified (true cause→ΔA ≥ 30 min pairs present in the
+   JSON chain) − penalty for SPURIOUS links (non-causal, P3).
+   Normalized score 0..3; ≥ 2.2 required (73%).
+AXIS E — ROBUSTNESS (traps P3/P4/P6): Brier on trap cases vs Brier on
+   main cases; degradation ≤ 10% (cutoff §10); and NO false causal link
+   on P3 (exact chain).
+AXIS F — EPISTEMIC HONESTY (P7) ≥ 80%: fraction of P7 where the
+   "undetermined" response is emitted (instead of a fabricated firm
+   prediction). Declared under-information = expected behavior.
+
+10. CUTOFF (pre-registered — NEGATIVE if a SINGLE ONE is triggered)
+  1. Axis A: Brier(agent) > Brier(R1) at H-2   OR  > Brier(R0) at J-1
+  2. Axis B: calibration > 0.10
+  3. Axis D: causal quality < 2.2/3
+  4. Axis E: P3 degradation > 10%
+  5. Honesty axiom: "undetermined" response forbidden on any case
+     where the agent could have inferred the value via closed counterfactual —
+     measured by the NON-withholding axiom (P7 are the ONLY cases where
+     it is expected).
+Overall verdict: PASS if no cutoff triggered; otherwise NEGATIVE.
+
+11. RESERVED SEEDS (PRIME families — verify 84000+ unused)
+    84000..84009  symbolic replay determinism (H0 §5, 10 seeds)
+    84010..84019  symbolic H0 snapshot/restore (10 seeds)
+    84020..84147  main cases 128 (N1..N4, 32 per level) — 1 seed/case
+    84160..84219  trap cases 60 (P1..P7, distributed seeds)
+    84220..84239  4-horizon anticipation pipeline (20 seeds, J3)
+    84240..84259  overall evaluation/scoring (20 seeds)
+    84300..       reserve (never consumed without demonstration)
+
+12. ABSOLUTE PROHIBITIONS
+0 modification to core/other phases. 0 LLM in the loop (P deterministic,
+W-only). 0 external engine — pure NumPy (no SciPy/pandas applied to
+reasoning). THE ORACLE (complete state) is readable ONLY by C (measurement
+branch, counterfactual) and L (diagnostic) — E/W/P only read the horizon's
+subset. No cases outside families. Calibration fitting FORBIDDEN
+(thresholds/p are sealed, not adjusted). Missing never replaced by an
+invented value (MISSING token, "undetermined" response). Spec SHA-256
+immutable once sealed (recomputed by T_sym_8).
+
+13. FINGERPRINT
+spec SHA-256 immutable (this file) — constant SEALED in the Design Doc
+Symbolic Extension J0 §(fingerprint) and replayed by T_sym_0c/T_sym_8.
+
+14. DILIGENCE REPORT (pre-sealing J0' — full entry, 2026-09-09)
+Execution: scripts/run_diligence_symbolique.py →
+data/genesis_symbolique_diligence_results.json (deterministic, pure NumPy,
+seeds families 84000+). All figures below are extractable from the JSON file
+(replayable, identical outputs).
+  1. C1 Replay Determinism             : PASS (10 seeds × 4 levels diff==0)
+  2. C2 Symbolic H0 bit-identical      : PASS (10 seeds, identical replay)
+  3. Brier (subset 64 = 16×N1..N4)
+       agent J-1 0.0634 ≤ R0 0.1094   : PASS (agent beats base rate)
+       agent H-2 0.0312 ≤ R1 0.1406   : PASS (agent beats naive propagation)
+       agent H-6 0.0606 · H-0 0.0117  : published
+  4. Calibration (128 cases) :
+       excluding saturation bin, worst bin = 0.0258 (H-6, [0.10,0.20], n=11)
+       → ≤ 0.10 ACHIEVABLE             : PASS
+       saturation bin [0.40,0.50] p=0.50 exact (hidden ext / head flight
+       extreme): n ∈ {4..10}, ȳ ∈ {0.70..0.86}, SE = 0.5/√n, z ≤ 1.9
+       → sampling noise, exact by construction (published separately)
+       Amendment v0.2: Axis B measured excluding saturation (SE published).
+  5. ΔA ≥ 30 min — justification: model quantum = smallest non-nominal δ
+       = δ_CR(delayed) = 30 → ΔA ≥ 1.05·30 = 31.5 min. Measured:
+       target N1 84020 slot → ΔA = 32; N3 84084 slot → ΔA = 32. Upstream
+       links attenuated below 30 are absorbed by R buffers (intentional
+       recovery, not causal loss). Sensitivity 20/30/40 (32 cases N2+N3):
+       links/case 1.47 / 1.28 / 0.97 — plateau at 30 stable (± 0.19/0.31
+       link around, measured bounds, no verdict flip).
+  6. Symmetric pair (Touch): agreement |ΔA_removal − ΔA_injection| = 0
+       on pure N1/N2/N3/N4, ≤ 1 min when 2 causes interact via clamping
+       (e.g. N1 84022: weather 48/47, crew 95/94) → coherent, non-directional.
+  7. Level N4 (targeted case 84116 + eligibles): exo_3v = undetermined at ALL
+       horizons (ext + head rotation never revealed); MISSING exhaustively
+       declared including at H-0 (ext_1..3, rot_3); alternative scenario
+       computed: eliminate weather@3 (ΔA=186) → A: 224 → 38 < 180. Honesty OK.
+  8. Undetermined cases (64): J-1 49, H-6 28, H-2 8, H-0 3 (the 3 = N4
+       counterfactual, by design) — non-revelation is declared, never
+       fabricated.
+  9. Eligible determination: base rate 0.125 (64) / 0.086 (128) —
+       corpus predominantly ineligible, R0/R1 beaten despite that.
+NO calibration fitting (thresholds/p unchanged). The sole correction found
+is the operational definition of Axis B (saturation bin excluded + SE),
+SCOPE OF THE DILIGENCE (pre-sealing refinement documented, not a
+threshold redefinition). SHA 0.1 → 0.2: this file (§9 Axis B + §14).

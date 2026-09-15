@@ -1,0 +1,455 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_perceptif_v2.txt (SHA 52ec101449136822…) immutable.
+source_fr: "data/genesis_spec_perceptif_v2.txt"
+sha_source: "52ec101449136822"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "Design Doc Perceptive Encoder v2 J0 — Rich channel and state feedback for active manipulation (Lesson 48)"
+type: design
+project: BBI
+version: 0.1
+status: sealed — English translation of frozen spec
+tags: [translation, en, sealed-spec]
+---
+
+# Design Doc Perceptive Encoder v2 J0 — Rich channel and state feedback for active manipulation
+
+**BBI programme — Perceptive Encoder v2 (Founder arbitration 2026-09-13:
+"we do not close the programme" — CP Option B).** The v1 (Chantier A, 3 paths)
+is closed on **PARTIAL** (CE4 PASS 3/3 · CE5 PARTIAL — Lesson 48). This v2 is
+a **new scientific programme**: solving the identified structural limitation
+(quantised 1-bit channel + open loop) with a **rich channel**
+(multi-dimensional, float64) and **state feedback** (closed loop). Scientific
+question :
+
+> *Can BBI **STABILISE** a dynamic target (CE5) — not merely **VERIFY** it
+> (CE4) — if we provide it with a **rich** perceptive channel `[θ̃, ω̃] ∈ ℝ²`
+> (float64, 0 quantisation) and **state feedback** (closed-loop: after each
+> action, observation of the new state and adjustment)? The v1 proved VERIFY
+> (CE4 3/3). The v2 must prove STABILISE (CE5 10/10).
+> This is Lesson 48: distinguishing verifying from stabilising.*
+
+> ⚠️ **This programme is NEITHER "Vision v3" NOR "Perceptive Encoder v1
+> patched".** Visual Perception is closed **definitively** (Lessons 40-41). The
+> Perceptive Encoder v1 is **closed on PARTIAL** (Lesson 48): its specs
+> (`5165e9df…`), its seeds (90000-90119) and its criteria **do not move** — v1
+> remains the sealed and published experiment (`20b4b515…`). The v2 is a new
+> couple **channel × feedback × seed family (92000+) × seal**. The submitted
+> NeurIPS paper #361515 remains the scientific photograph of v1 (consolidated
+> camera-ready: 6 extensions · 48 lessons) — **nothing is modified** in the
+> submitted version.
+
+**BBI progression (unified reframing — BBI is ONE E-W-C-P-L architecture) :**
+- **Continuous physical extension** — pendulum, 2-segment arm, friction — **✅ COMPLETE** (POSITIVE)
+- **Symbolic reasoning extension (EU261)** — **✅ COMPLETE** (J4 POSITIVE)
+- **Trading extension (Yahoo Finance + FRED)** — **✅ COMPLETE** (PASS, Lesson 42)
+- **Active Causal Discovery extension** — **✅ COMPLETE** (v2 PASS, Lessons 43-47)
+- **Visual Perception extension** — **❌ CLOSED** (NEGATIVE v1+v2, Lessons 40-41)
+- **Perceptive Encoder v1 programme** — **⚠️ CLOSED on PARTIAL** (CE4 3/3 PASS · CE5 PARTIAL, Lessons 45/48, digest `20b4b515…`)
+- **Perceptive Encoder v2 programme** — **🔵 J0 PRE-REGISTERED — submitted CP validation**
+
+This document is **pre-registered, sealable, then sealed** (NO code before CP
+validation): GO Chef → **diligence D1-D5 (§10)** → **SEALED spec** (SHA §9) →
+J1..J4 (5 days). The thresholds §6 and cut-offs §7 are **FROZEN as of J0**
+(Lesson 30: nothing moves after measurement).
+
+---
+
+## 0. Starting situation — why a new programme, and not a relaunch
+
+The v1 proved **declarative fidelity**: the 3 paths reconstruct the perceptive
+causal differential (CE4 PASS, A 0.9196 · B 0.9415 · C 0.8473 — 120 cases,
+≥ 0.80 AND > R1+0.05). It failed **manipulation**: stabilising a target (CE5,
+A 1/10 · B 1/10 · C 2/10, final error at step 50, 0 fallback, 60 traps
+PP1..PP7 — PP7 distortion 17 % published). Carved lessons :
+
+- **Lesson 48** (2026-09-12) — one must distinguish **verifying** (W/C
+  agreement on the causal differential) from **stabilising** (reaching the
+  target state). A PARTIAL verdict on manipulation **is not a failure of
+  perception** — but the cause of the CE5 failure is identified and structural.
+- **Lesson 40** — the perceptive information loss is **provisioned into the
+  threshold** from J0.
+- **Lesson 41** — two successive failures, same cause = closure by default.
+  (The v1 is PARTIAL, not NEGATIVE: the v2 is a **programme rupture**
+  arbitrated by the Founder, not a forbidden relaunch — it does not re-test
+  CE4 on a degraded channel.)
+- **Lesson 42** — anticipation is tested on horizon-dependent information.
+
+**Root-cause analysis (v1 §2.2/§13, J4 Report):** the CE5 failure is due to two
+structural causes, both addressed by v2:
+
+1. **Channel too poor** — 1 dimension, quantised uint8, `sin θ` projection:
+   the **velocity ω is never directly observable**; a P blind in velocity
+   cannot damp a dynamic target.
+2. **Open loop** — the v1 acts on a sliding window of 32 steps **without ever
+   observing the effect of its action** on the following cycle; W predicts but
+   P never re-corrects.
+
+## 1. Objective
+
+Extend the **E** layer to **rich + feedback** perception: BBI reads `[θ̃, ω̃]`
+(partial state vector, float64), extracts a causal latent `z_v` through 3
+deterministic paths (§2.4), **and manipulates**: stabilise `θ ≈ θ_target`
+(recomputed from perceptive `m_est` §2.5) at **error < 0.1 rad in ≤ 50 control
+steps**, **10/10 per path** (CE5).
+
+**Non-objectives:** 0 deep learning, 0 LLM (pure NumPy); 0 pixel, 0 camera,
+0 2D render; **0 modification of the sealed v1 testbed `GenesisArmEnv`** (only
+the capture channel is an EXTENSION §2.3); 0 modification of the v1 specs
+(perceptive v1 remains closed PARTIAL — `5165e9df…` intact); no closed form of
+the world equations (the Touch's quasi-state kernel Ψ is a modality, not an
+equation solved by the agent).
+
+## 2. Specification (SEALABLE — contained in this document, SHA imprint §9)
+
+### 2.1 Perceptive channel v2 — **OPTION A DECIDED: partial state vector `[θ̃, ω̃]`**
+
+The two options evaluated at J0 (CP analysis mirror):
+
+| Option | Description | J0 verdict |
+|---|---|---|
+| **A — Partial state vector** | `[θ_noisy, ω_noisy]`, float64, seeded noise | ✅ **KEPT** |
+| **B — Fourier spectrum** | FFT(window of θ) over W steps (amplitudes + phases) | ❌ Discarded |
+
+**Justification of the decision (dev, §2.1.3):** CP recommendation followed.
+Option B is a **derived** quantity (the exact temporal phase is blurred by the
+windowing): poor for stabilisation, lower oracle ceiling, and reconstructing
+velocity by phase derivative is fragile (v1 lesson of path A). Option A is the
+**minimal generalisation** of a real partial-state sensor (2 components of the
+real physical state): trivial to de-noise per path, directly replayable, oracle
+ceiling ~1.0 (D4).
+
+**§2.1.1 — Definition (pure function `capture_v2`, seeded, H0-compatible):**
+
+At each sensor step `t_k = k·Δt_cap` (Δt_cap = 0.02 s, testbed mirror):
+
+    θ̃_k = θ(t_k) + ηᵠ_k,   ηᵠ_k = U(−ε_v2, +ε_v2)
+    ω̃_k = ω(t_k) + ηω_k,   ηω_k = U(−5·ε_v2, +5·ε_v2)
+
+- η seeded: pure function of the seed (same seed → same noise, bit-identical
+  replay);
+- **ε_v2**: noise level **per seed**, deterministically drawn from 3 levels
+  **{0.005, 0.010, 0.020} rad** (index = seed % 3) — mirror of the 3 v1
+  quantum levels (ε∈{0,1,2}), balanced repartition ~1/3-1/3-1/3 (verified D1);
+- **no quantisation**: native float64 ("analogue-acquired" sensor, no 8-bit
+  ADC) — the v1 loss stemming from uint8 quantisation disappears;
+- observed window `W_cap` = **32 sensor steps (0.64 s)**, sliding, v1 mirror.
+
+**§2.1.2 — Informational richness (diligence D1, measured BEFORE sealing):**
+`u^v2 = (θ, ω)` contains **the full state** of the pendulum (vs quantised
+`sin θ` in v1): velocity becomes observable; the encoding task is no longer
+the reconstruction of a lost projection but **de-noising + redundancy per
+path**. The seeded bounded-U noise **bounds the loss** (Lesson 40 provisioned),
+never discovered at J3.
+
+**§2.1.3 — Why Option A, not Option B:**
+
+| | **A — State vector `[θ̃, ω̃]`** | **B — FFT spectrum** |
+|---|---|---|
+| Information | full state (θ, ω) direct | amplitudes+phases over W steps |
+| Velocity | explicit (ω̃) | phase derivative (fragile to windowing) |
+| De-noising | trivial (per-path averages) | leakage / frequency grid |
+| Oracle stabilisation ceiling (D4) | ~1.0 (full state) | < 1.0 (approximate phase) |
+| Alpha complexity | 2 float64 channels | transform + phase reconstruction |
+
+### 2.2 State feedback (feedback loop) — the rupture with v1
+
+The v1 was **open-loop**: E reads a sliding window of 32 steps, P acts "blind"
+— **no observation of the action's effect**. The v2 is **closed-loop**: the
+control cycle is atomised into 6 explicit, replayable, H0-compatible moments:
+
+    t^c    : capture(current flux W_cap) → E → z_v = E_V(θ̃, ω̃)
+    t^c    : W predicts ẑ'_v for each candidate action (anticipated perceptive effects)
+    t^c    : P chooses a* = action minimising |predicted error| towards θ_target
+             (horizon-dependent information, Lesson 42)
+    t^c    : C measures Δz_v (do-vs-null difference, causal attribution)
+    t^c+1  : action a* applied over K_steps (K = 4 steps = 0.08 s)
+    t^c+1' : **RE-CAPTURE [θ̃, ω̃]** — the observed effect of the action feeds W
+             (state feedback: W re-aimed, P adjusts the next action)
+
+- **W integrates the observation**: `W(z_v, a) → ẑ'_v` is confronted with the
+  real `z_v` re-captured after each action — **no blind drift**;
+- **P is looped**: the next action depends on the observed post-action state,
+  not only on the past window;
+- **coupled measurement**: `current_error = |θ̂_e − θ_target|` logged at each
+  cycle in L (T_perc_6);
+- the control target `θ_target` is **recomputed from perceptive `m_est`**
+  (§2.5) — stabilisation depends on causal inference, not on an oracle.
+
+### 2.3 Testbed — UNCHANGED, capture channel EXTENDED
+
+- **`GenesisArmEnv`** (SEALED Alpha — `e22dc3ae…`, spec
+  `data/genesis_spec_arm_env.txt`) **is used as-is, never modified**:
+  dynamics (m∈[0.5,5.0] kg, b∈[0.1,2.0] sealed), quantised torques,
+  dt=0.02 s, initial rest observation. v1 CP decision: agent-side
+  correction/extraction, never testbed-side.
+- **The capture channel is an EXTENSION** (outside the env): `capture_v2(state)
+  → u ∈ ℝ^{W_cap × 2}`, pure and seeded function, lives capture-side (module
+  D1), NOT in the testbed → the SHA `e22dc3ae…` remains intact (T_perc_8).
+
+### 2.4 Encoders (3 paths — adapted to the rich channel)
+
+**Common input:** flux `u = ((θ̃_1, ω̃_1)..(θ̃_Wcap, ω̃_Wcap))` float64 +
+previous flux `u′` (1-step memory for derivatives). **Output:** `z_v =
+E_V(u, u′) ∈ ℝ⁸`, path V ∈ {A, B, C}. Each path exploits **the 2 dimensions**
+(redundancy is the new richness — de-noising comes from the coupling).
+
+**Path A — Modal (`perc_encoder_modal_v2.py`)**
+1. numpy STFT (hann 16, hop 8) of the θ̃ series → ω̂_modal by phase derivative
+   of the fundamental component (3 bands [0.1, 0.5, 1.0]·f_nyq);
+2. **cross-agreement ω̃**: the observed velocity confronts ω̂_modal →
+   `θω_coherence ∈ z_A` (the v2 channel de-noises by 2D redundancy);
+3. numpy Haar DWT (level 3, `[1,1]/[1,−1]/√2`) on θ̃ and ω̃ → approximation/
+   detail bands;
+4. direct de-projection: θ̂ ≈ sliding average of θ̃ (no more arcsin);
+5. `z_A = [cosθ̂, sinθ̂, ω̂, E_total, E_band1..3, θω_coherence]`;
+6. diffuse energy / unstable ω̂ → **`missing[]` declared** (never filled).
+
+Assumed risk: strong damping ⇒ widened spectrum ⇒ honest refusal (measured
+non-stationarity), v1 mirror.
+
+**Path B — Geometric (`perc_encoder_geom_v2.py`)**
+1. **DIRECT phase plane (θ̃, ω̃)** — the 2 real dimensions form the phase cloud
+   (vs v1 reconstructed by uint8 finite difference);
+2. Primitives: segments (recursive RDP, tol 2e-2 rad), **arcs / circles**
+   (least-squares fit on sliding triplets, radius ≥ 2e-2 rad), envelope (pure
+   NumPy convex hull);
+3. `z_B = [dominant_circle_radius, centre_x/y, dominant_segment_slope,
+   ω̂_geom (circle-angle derivative), radius_min/max, compactness, energy]`;
+4. formless cloud → **`missing[]` declared**.
+
+Assumed risk: seeded noise deforms the geometry → coherent tolerant global fit
+(no learned parameter), invariance verified by T_perc_7.
+
+**Path C — Adaptive sampling (`perc_encoder_sample_v2.py`)**
+1. Adaptive selection of the relevant regions of θ̃: local extrema
+   (|Δθ̃| ≥ adaptive per-window threshold), derivative zero crossings, ω̃
+   coupled points at the retained instants (~20 % of the points);
+2. Reconstruction: numpy cubic spline / damped kernel between retained points;
+3. `z_C = [n_extrema, positions, amplitudes, zero_instants, ω̂ (period via
+   intervals, reinforced by ω̃), inter-extrema slopes, confidence]`;
+4. < 3 reliable extrema → **`missing[]` declared**.
+
+Assumed risk: failing selection regulation → context loss declared `missing[]`,
+never invented.
+
+**Common properties (sealed):** 0 free parameter → 0 deep learning;
+bit-identical replay (T_perc_1); `z_v` is **quasi-state**: W predicts the next
+`z_v` from `(z_v, action)` without reading the exact state; **the mass m stays
+hidden** (no feature of the flux contains it — m inferable by intervention
+§2.5, tested on the perceptive differential).
+
+### 2.5 Perceptive Causal Touch v2 (FROZEN — v1 §2.5 mirror, replayed, not re-sealed)
+
+The protocol **does not change** (it is replayed on the rich channel, not
+re-calibrated): K-step window (0.4 s) at constant τ, torque pair
+`(a_probe=3, a_null=2)` from rest, identification through the dynamics' **exact
+damped kernel**, 3-pass latency (`m̂₀` dry kernel → `γ̂` coast by logarithmic
+decrement of the perceptive extrema → refit `m̂` → `b̂ = 2γ̂m̂`), null branch
+subtracted (counterfactual). The difference: the perceptive angles **θ̂_e(v2)**
+are more precise (velocity readable, no arcsin of a projection). **Error < 15 %
+required (CE3, frozen)**. The v2 perceptive counterfactual:
+`capture_v2(θ̂, ω̂, m̂, a) vs capture_v2(θ̂, ω̂, m̂, a_null)` → Δu attribution
+≥ threshold ⇒ "perceptive link" (T_perc_4).
+
+### 2.6 E-W-C-P-L v2 loop (feedback, closed-loop)
+
+| Layer | v2 role |
+|---|---|
+| **E** | `z_v = E_V(θ̃, ω̃)` — 0 deep learning, bit-identical replay |
+| **W** | `W(z_v, a) → ẑ'_v` — prediction **re-aimed by the observed post-action state** (state feedback §2.2), never the hidden state |
+| **C** | measures the causal effect: `Δz_v = z_v_do − z_v_null` on re-captured streams (12 steps/0.24 s); attribution by `Δu`; perceptive causal chain JSON |
+| **P** | chooses `a ∈ {a_probe, a_null, ±5, ±2.5, 0}` **as a function of the observed state** `z_v` (closed loop), horizon-sensitive (Lesson 42) |
+| **L** | JSONL journal: `flux_hash`, z_v, action, Δu_energy, Δz_v, `z_obs_post_action`, θ_target, current_error, m_est, verdicts/path — **the state feedback is logged** |
+
+### 2.7 Output L — Perceptive v2 protocol fields (JSON)
+
+`flux_hash`, `step`, `z_v[]`, `voie`, `action`, `z_pred`, `z_null_pred`,
+**`z_obs_post_action`** (state feedback), `delta_flux_energy`,
+`theta_target_error`, `chain[]` (perceptive links: `feature`, `Δu`,
+`direction`, `accord`), `m_est`, `frottement_est`, `prediction` (stabilised /
+oscillation / indeterminate), `missing[]` (never invented).
+
+## 3. H0 protocol (FROZEN — §2.4 mirror)
+
+**Bit-identical** snapshot/restore of the v2 stream (float64 × 2 channels):
+`bytes(u) = u.tobytes()` + `hash(u)` + sensor state (repr, arr, noise seed).
+Counterfactual on the v2 streams (do-vs-null from the same snapshot).
+
+## 4. Perceptive Causal Touch — independence of the v2 paths
+
+Same arbitration as v1: **intact testbed, 3 independent encoding paths** (the
+Founder arbitration: new channel, intact testbed, 3 paths). Lesson 41 applied
+**per path**: a NEGATIVE path does not sink the others; **3 NEGATIVE paths →
+programme closure**. Each path: dedicated module
+(`perc_encoder_{modal,geom,sample}_v2.py`) + runner — disjoint files, disjoint
+seeds (§5), independently auditable (T_perc_8 isolation).
+
+## 5. Seeds (FIRST family 92000+, Chef decision)
+
+The family **92000-92119** is entirely **FIRST** (never touched — verified by
+diligence scan D3: 0 hit in `python/`, `scripts/`, `data/`). Previous families:
+physics 10000-19999, symbolic (EU261) 60000+, trading 70000-79999, perception
+85000-85067, discovery 89000-89549, encoder v1 **90000-90119**. **92000+ = no
+collision.**
+
+| Family | Seeds | Usage |
+|---|---|---|
+| Determinism + H0 v2 | 92000..92009 | 10 seeds: CE1 (2 runs bit-identical) + CE2 (snapshot/restore) |
+| Perceptive Touch v2 | 92010..92019 | 8 CE3 seeds (92010-92017) + 2 reserve |
+| E-W-C-P-L v2 loop | 92020..92029 | 10 seeds × 100 cycles (T_perc_6), 3 paths |
+| CE4 eval path A | 92030..92039 | 10 seeds |
+| CE4 eval path B | 92040..92049 | 10 seeds |
+| CE4 eval path C | 92050..92059 | 10 seeds |
+| CE5 eval path A | 92060..92069 | 10 seeds |
+| CE5 eval path B | 92070..92079 | 10 seeds |
+| CE5 eval path C | 92080..92089 | 10 seeds |
+| Traps PP1..PP7 | 92090..92119 | 30 seeds — 60 perceptive traps (case→seed mapping at J4, Addendum v1 mirror) |
+| Reserve | 92120+ | never consumed without demonstration |
+
+**Volumes:** ~360 evaluation cases (120 CE4 blocks + 120 CE5 blocks, × 3 paths)
+with **4 observation horizons per case** (J-1, H-6, H-2, H-0 → 100, 300, 600,
+1200 sensor steps, v1 mirror) + **60 traps** PP1..PP7: sensor saturation, strong
+noise (ε=2 → ε_v2=0.020), too-short window, flat stream, maximal noise,
+projection absorption (replaced in v2: target at zenith), distractor — PP7
+(target distortion) redesigned for the v2 channel: **target unattainable in
+≤ 50 steps (control limit), published if failed**.
+
+## 6. Success Criteria (FROZEN — pre-registered as of J0, Lesson 30)
+
+| Criterion | Threshold (frozen) |
+|---|---|
+| **CE1 — Perceptive determinism v2** | 10/10 seeds (92000..92009): 2 executions → `np.array_equal` of the float64 streams (θ̃, ω̃) AND of the z_v (diff == 0) |
+| **CE2 — Perceptive H0 v2** | 10/10 seeds (92000..92009): bit-identical snapshot/restore of the streams |
+| **CE3 — Perceptive Causal Touch v2** | hidden mass inferred from the v2 perceptive angles (kernel Ψ, 3 passes): relative error **< 15 %** (frozen, Lesson 40 provision) — 8 seeds (92010..92017) |
+| **CE4 — W/C fidelity v2** | **≥ 0.80** AND **> R1 + 0.05** on the perceptive causal differential (C: Δz_v on v2 streams; W: same quantity) — **10 seeds/path** (92030..92059) |
+| **CE5 — Manipulation (STABILISATION) v2** | stabilise θ ≈ θ_target (recomputed from perceptive `m_est`): error **< 0.1 rad** in **≤ 50 control steps** — **10/10 per path** (92060..92089) |
+
+**CE1-CE4:** identical to v1 (they already passed). **CE5: the central
+criterion** — it is this one that goes from "objective" (v1: failure → PARTIAL)
+to **verdict criterion** (v2: failure → PARTIAL published, but the programme
+only answers NEGATIVE if CE1-CE4 fail, see §7). **CE4 frozen ≥ 0.80:**
+nominal value recorded as of J0, confirmed (never adjusted) by diligence D2/D4
+— v1 mirror (Lesson 40 provision and Lesson 45 solvency per sub-family).
+
+## 7. Cut-off (pre-registered — Chef decision)
+
+**NEGATIVE VERDICT (per path)** if, on the path's sealed evaluation:
+1. **CE1 (perceptive determinism v2) fails** — the bit-identical replay
+   (stream + z_v) is the condition of any reproducible science;
+2. **CE2 (perceptive H0 v2) fails** — the bit-identical snapshot/restore is the
+   foundation of the counterfactual;
+3. **CE3 (perceptive Causal Touch v2) fails** — inference by intervention on
+   the stream is the heart of the question;
+4. **CE4 fails** by crash / NaN / oracle leak (unstable loop or E/W/P reading
+   the exact state).
+
+**CE5 alone fails → PARTIAL verdict (public)** for the path (causal perception
+is proven; **stabilisation** remains a limit — published, never masked;
+Lesson 48: a stabilisation failure is not a perception failure). **Programme
+closure:** 3 NEGATIVE paths **or** CE5 PARTIAL on all 3 paths (Lesson 41
+applied by programme). **No threshold/p fitting after measurement**
+(forbidden §8).
+
+## 8. Absolute Forbiddens (FROZEN)
+
+1. **0 deep learning**: no learning library (torch, tensorflow, keras, jax,
+   sklearn, cv2/opencv, scipy); **pure NumPy only**.
+2. **0 LLM** in the cognitive loop (deterministic P, W-only).
+3. **0 pixel, 0 camera, 0 2D render**: NOT Vision v3 (Lessons 40-41 closure);
+   the channel is the **partial state vector** (§2.1), pure function.
+4. **0 modification of the sealed physical testbed** (`GenesisArmEnv`, SHA
+   `e22dc3ae…`) **nor of the v1 specs** (Perceptive Encoder v1 remains closed
+   on PARTIAL — spec `5165e9df…`, seeds 90000-90119, criteria CE1-CE5 v1);
+   Phase 13 codebook / Rust core: committed hashes intact.
+5. **The ORACLE (exact state θ, ω, m, b) is readable ONLY by C (measurement /
+   counterfactual branch) and L (diagnostic)** — **E/W/P read ONLY the v2
+   STREAM** (T_perc_8 audit).
+6. **Out of J0-J4 scope**: real sensor / non-replayable noise. **Forbidden:
+   adding observable state variables to the agent during the evaluation**
+   (the solver is the v2 channel + the feedback, not the addition of sensors).
+7. No invented value: non-informative features → `missing[]` /
+   "indeterminate". **No threshold/p fitting after measurement** (Lessons
+   30/40).
+8. No case outside the frozen families; reserve 92120+ not consumed;
+   **strictly disjoint path seeds**.
+9. Spec SHA-256 immutable once sealed (replayed by T_perc_0/T_perc_8).
+10. **Lesson 41 per path:** a path NEGATIVE triggers neither recalibration nor
+    an additional "implicit v2" — publication, then explicit CP decision.
+
+## 10. Diligence D1-D5 v2 (pre-sealing J0' — AFTER CP validation of the design doc)
+
+| Verification | v2 requirement |
+|---|---|
+| **D1 — Richness of the v2 channel** | balanced ε_v2 repartition (~1/3 per level over 92000+); the (θ̃, ω̃) stream is bit-identical replayable; the v1 loss (sin θ projection + uint8 quantisation) is removed and documented |
+| **D2 — Testbed + bit-identical H0 v2** | `GenesisArmEnv` intact (SHA `e22dc3ae…`, spec `data/genesis_spec_arm_env.txt`); `capture_v2` pure seeded function; bit-identical replay of the 3 v2 encoders (T_perc_1/2 embryos) |
+| **D3 — Seeds 92000+ virgin** | scan 0 true hit in `python/`, `scripts/`, `data/`, `artifacts/` (v1 D3 mirror) — **FIRST family** |
+| **D4 — CE5 oracle ceiling (CRITICAL RISK LIFT)** | oracle controller (exact state) simulates stabilisation having only the **v2 channel** as input: **if ceiling < CE5 threshold (≈0.80 attainable), the channel is AMENDED BEFORE sealing** — never the threshold lowered (Lesson 45). Must ≥ 0.80 to seal CE5 10/10 |
+| **D5 — Functional feedback loop** | the §2.2 cycle replays bit-identical; after each action, `z_v_observed` is really the following state (no leak, no drift); forbiddens verified (import scan); disjoint path files/seeds; 5-day budget tenable |
+
+Each item is recorded in its runner (`scripts/`), generates a results JSON
+(`data/`), digest reported here **before** sealing. **Verdict: all GREEN ⇒
+J0' seal. Otherwise: amendment of the channel BEFORE sealing (D4),
+documentation, never weakening of the criteria.**
+
+## 11. Execution Sequence
+
+| Day | Task | Deliverable |
+|---|---|---|
+| J0 | Design Doc v2 (**this file**) → **CP submission** — 0 code before GO | J0 SEALABLE (CP validated) |
+| J0' | Diligence D1-D5 (§10) → SEALED spec (§9, file `data/genesis_spec_perceptif_v2.txt`) | **J0' SEALED** → GO J1 |
+| J1 | v2 channel (`capture_v2` seeded float64) + 3 v2 encoders (`perc_encoder_{modal,geom,sample}_v2.py`) + H0 v2 + T_perc_0/1/2 | Determinism + global fidelity |
+| J2 | Causal Touch v2 (m_est from v2 perceptive angles) + v2 counterfactual Δu + T_perc_3/4 | v2 perceptive intervention inference |
+| J3 | E-W-C-P-L v2 **feedback** loop + T_perc_5/6 | closed-loop perceptive causal reasoning |
+| J4 | CE1..CE5 evaluation (10 seeds/path) + 60 traps PP1..PP7 + T_perc_7/8 + lessons + Report | Verdicts POSITIVE / PARTIAL / NEGATIVE **per path** — CE5 = criterion |
+
+**Total budget: 5 days** (v1 and previous extensions mirror).
+
+## 12. Explicit methodological lessons (referenced to the corpus)
+
+- **Lesson 40** — the perceptive information loss is **provisioned into the
+  threshold**: the v2 channel (float64, bounded seeded noise) bounds the loss
+  **from J0**; never adjusted after measurement.
+- **Lesson 41** — two successive failures = closure by default: applied **per
+  path** (a path NEGATIVE does not sink the others) and **by programme** (3
+  NEGATIVE paths **or** CE5 PARTIAL 3/3 → closure) — the v2, launched on
+  Founder arbitration, is a **documented rupture**, not a masked relaunch.
+- **Lesson 42** — anticipation is tested on horizon-dependent information: the
+  long perceptive windows (H-0) provide spectral bands / primitives / extrema
+  absent at short horizon ⇒ P depends on it, tightness verified.
+- **Lesson 48 (the heart of the programme)** — **verifying ≠ stabilising**:
+  the v2 does not re-test CE4 (it already passes); it tests **CE5-Stabilise**
+  through a rich channel + feedback. A CE5 failure is **published**, never
+  masked, and is not a perception failure.
+- **Lesson 45** — oracle ceiling per sub-family: D4 verifies that the v2
+  channel makes CE5 **sealable** (≥ 0.80 attainable by the oracle); otherwise
+  the channel is amended BEFORE sealing, the threshold never lowered.
+
+## 13. This is NEITHER Vision v3 NOR Perceptive Encoder v1 "patched"
+
+| Programme | Channel | Loop | Question |
+|---|---|---|---|
+| Visual Perception v1/v2 (**CLOSED**) | 2D pixels | open-loop | recognising states |
+| Perceptive Encoder v1 (**CLOSED PARTIAL**) | quantised 1-bit sin θ | **open-loop** | encapsulating a projection |
+| **Perceptive Encoder v2 (THIS PROGRAMME)** | **rich [θ̃, ω̃] float64** | **closed-loop (state feedback)** | **STABILISE (active manipulation)** |
+
+New scientific programme: **new channel, new feedback, new seed family
+(92000+), new seal**. The v1 specs remain closed PARTIAL (`5165e9df…`, report
+`20b4b515…`); the submitted NeurIPS camera-ready is **not modified**.
+
+## 14. Conclusion
+
+The v1 proved **VERIFY** (CE4 3/3). The v2 instantiates the Lesson 48 blueprint
+to prove **STABILISE**: rich channel `[θ̃, ω̃]` float64 + closed-loop state
+feedback. 3 independent deterministic paths, FIRST seed family **92000+**,
+frozen criteria (§6), **CE5 promoted from "objective" to "criterion"**, hard
+cut-off per path + programme closure (Lesson 41). **0 code before GO CP. 0
+modification of the sealed testbed (`e22dc3ae…`) nor of the v1 specs. 0
+threshold fit after measurement (Lesson 30).**
+
+**Links:** [[INDEX]] · [[BBI Methodological Lessons]] · [[Audit Log]] ·
+[[Design Doc Perceptive Encoder J0 — Raw perceptive channel (quantised 1D stream), causal latent, 3 encoder paths (modal-geometric-sampling)]] ·
+[[Perceptive Encoder J4 Report — Evaluation CE1..CE5 + 60 Traps PP1..PP7 (T_perc_6-7-8, verdict PARTIAL)]] ·
+[[NeurIPS Addendum — Perceptive Encoder Extension (PARTIAL verdict)]] ·
+[[Arbitration — Visual Perception Extension (NEGATIVE closure, relaunch path, Founder decision)]] ·
+[[Visual Perception Extension Report — NEGATIVE Verdict]]

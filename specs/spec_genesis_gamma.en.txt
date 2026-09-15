@@ -1,0 +1,236 @@
+---
+# Official English translation. Source FR sealed spec data/genesis_spec_gamma.txt (SHA b6445a252a95486f…) immutable.
+source_fr: "data/genesis_spec_gamma.txt"
+sha_source: "b6445a252a95486f"
+translation_date: "2026-09-15"
+note: "Translated from FR original. All hashes, thresholds, seeds, and numbers preserved byte-identical."
+title: "GENESIS Gamma — Canonical Specification, Frozen (J0 pre-registered)"
+type: design
+project: BBI
+version: 1.0
+status: frozen — English translation of frozen spec
+tags: [translation, en, sealed-spec, gamma, genesis, friction, viscous-damping]
+---
+
+BBI — GENESIS GAMMA — CANONICAL SPECIFICATION FROZEN (J0 pre-registered)
+Version: 1.0 (validated by J0 diligence before sealing)
+Date: 2026-09-09 | Project: BBI | Chef: GO Gamma-J0 pending
+Status: FROZEN. NO modification after this file.
+
+==================================================================
+1. SCIENTIFIC QUESTION
+==================================================================
+Can BBI infer a hidden variable that does NOT reveal itself through
+instantaneous impulse, but through TEMPORAL DISSIPATION — the viscous
+friction coefficient b — via an adapted Causal Touch protocol
+(impulse that creates velocity, then observation of the decay)?
+The mass is KNOWN (no simultaneous hidden mass + friction):
+only b ∈ [0.1, 2.0] N·m·s is hidden.
+
+==================================================================
+2. PHYSICAL MODEL (damped pendulum Alpha REUSED, pure NumPy, float64)
+==================================================================
+EQUATION OF MOTION (Lagrange, sealed Alpha, UNCHANGED):
+    θ'' = -(g/L)·sin(θ) - (b/m)·ω + τ/(m·L²)
+CONVENTIONS: vertical plane; θ = 0 stable (hanging); θ ∈ [-π, π]
+(wrapped); τ > 0 = θ increasing.
+
+PHYSICAL CONSTANTS (FROZEN, carried over from Alpha):
+    g  = 9.81 m/s²
+    L  = 1.000 m
+    m  = 1.00 kg   KNOWN, FIXED (Chef decision: do NOT hide m + b)
+    b  = UNKNOWN, HIDDEN VARIABLE ∈ [0.1, 2.0] N·m·s (same interval
+         as Alpha's hidden friction — B_RANGE frozen)
+    dt = 0.02 s (50 Hz)
+
+INTEGRATOR: homebrew RK4, float64, step dt, θ wrapped [-π, π].
+ENERGY (deposited RAW into the world, same as Alpha):
+    cum_energy += τ² per step (N²·m²·dt). Never projected;
+    the audit recomposes it exactly.
+
+==================================================================
+3. ACTIONS (FROZEN)
+==================================================================
+τ ∈ {-5.0, -2.5, 0.0, +2.5, +5.0} N·m → 5 discrete actions.
+Exact table:
+    a   τ
+    0  -5.0
+    1  -2.5
+    2   0.0   ← NULL (action Δ = 0 applied during the Pair)
+    3  +2.5
+    4  +5.0
+
+==================================================================
+4. OBSERVATION / INITIALIZATION / H0 (FROZEN)
+==================================================================
+FULL OBSERVATION: o = [θ, ω].
+INITIAL STATE (reset seed): b drawn from [0.1, 2.0] via rng(seed); m = 1.0
+fixed (known); H0 / Touch / Manipulation: exact REST start
+[0, 0] rad, [0, 0] rad/s (defensive convention §4.1/C3 Alpha report,
+validated by the Chef).
+
+H0 CONTINUOUS — snapshot/restore carries: θ, ω, t, b (hidden parameter)
+and the physical constants. Test: snapshot step 10 → advance 30 steps →
+restore step 10 → advance 30 steps → FINAL state bit-identical (diff
+< 1e-12). Alpha H0 protocol reused as-is.
+
+==================================================================
+5. CAUSAL TOUCH GAMMA (FROZEN) — compound kick + coast protocol
+==================================================================
+FRICTION IS ZERO AT REST: an impulse from rest creates velocity
+(reveals inertia m·L², KNOWN), but friction acts ONLY during motion.
+The Touch must therefore be COMPOUND:
+    1) KICK: create velocity (ω ≠ 0) via a torque applied for h steps;
+    2) COAST: observe the decay of ω under τ = 0 for k steps;
+    3) INFER: b from the dissipation energy balance.
+
+PROTOCOL (2 H0 pairs per seed — to observe decay, velocity must have
+been created; 2 amplitudes to separate b from any amplitude dependence
+and verify viscous friction symmetry):
+    rest [0,0]/[0,0] → snapshot →
+    Pair 1: probe = kick τ=+5.0 N·m (a=4), h=4 steps, then coast τ=0
+              (a=2 NULL) k=250 steps       → b_est⁽¹⁾
+              null   = coast τ=0, k=250 steps from rest (no
+                       motion, no dissipation to observe)
+    Pair 2: probe = kick τ=-5.0 N·m (a=0), h=4 steps, then coast τ=0
+              (a=2 NULL) k=250 steps       → b_est⁽²⁾
+              null   = identical (degenerate: rest remains rest)
+    b_agent = (b_est⁽¹⁾ + b_est⁽²⁾)/2
+    AGREEMENT (audit T_gamma_3d): |b_est⁽¹⁾ − b_est⁽²⁾| = 0 (friction
+    symmetry: dissipation does not depend on the sign of ω).
+
+INFERENCE FORMULA — ENERGY BALANCE (m, L, g known):
+    E(θ, ω) = ½·m·L²·ω² + m·g·L·(1 - cos θ)
+    During coast (τ = 0), only friction dissipates:
+    dE/dt = -b·ω²  ⇒  b_est = (E0 - E1) / ( Σ_{j} ω_j² · dt )  ,
+    where E0 = E(θ,ω) at coast start, E1 = E(θ,ω) at coast end,
+    Σ_j ω_j²·dt over the k coast steps (observed samples).
+
+DECAY EQUATIONS (diagnostic, linearized small-θ · τ=0):
+    θ̈ + (b/m)·θ̇ + (g/L)·θ = 0
+    ω_n = √(g/L) = 3.132 rad/s ;  ζ = b/(2·m·ω_n) ∈ [0.016, 0.32]
+    (underdamped across the entire domain);
+    exponential velocity envelope e^{-ζ·ω_n·t};
+    logarithmic decrement Λ = ln(ω_+/ω_-) ≈ ζ·ω_n·T (diagnostic).
+The energy balance (exact for all θ, independent of damping)
+is the DECLARED FORMULA; the logarithmic decrement is a diagnostic.
+
+MEASURED (discrete RK4 world, J0 diligence): b_est error 0.99 % /
+1.99 % / 3.00 % for b ∈ {0.5, 1.0, 1.5} (systematic bias ~2·b %
+from non-conservative RK4 discretization, negligible vs 20 % threshold),
+30/30 seeds, agreement between the 2 pairs 0.00 %.
+
+CRITERION: relative error b < 20 % on {0.5, 1.0, 1.5} N·m·s, 30/30
+seeds (82020..82029 b=0.5; 82030..82039 b=1.0; 82040..82049 b=1.5).
+
+==================================================================
+6. MANIPULATION TASK (FROZEN) — stabilization at θ_target holdable
+==================================================================
+FIXED TARGET: θ_target = 0.30 rad, HOLDABLE (known mass m=1.0, L=1.0)
+by the static capacity equation (no tuning):
+    τ_hold(θ_c) = m·g·L·sin(θ_c) = 9.81·sin(0.30) = 2.90 N·m ≤ 5.0
+    (margin 2.10 N·m, 42 %).
+REJECTED θ_c = 0.45: τ_hold = 4.27 N·m (margin only 15 %) and π/2:
+τ_hold = 9.81 > 5.0 (UNATTAINABLE statically, same as Alpha C5b).
+
+CONTROLLER P (FROZEN): sliding surface σ = (θ - θ_target) + λ·ω; at
+each step, P predicts 2 steps ahead (W, belief m=1.0 known, b_agent =
+Touch Gamma) across the 5 actions and chooses argmin of |σ′| (σ′
+predicted by W). λ = 0.28 FROZEN — measured plateau [0.15, 0.40]
+yielding 20/20 and terminal error < 0.006 rad before sealing; 0.28 is
+interior to the plateau (no J4 re-search, simple confirmation).
+
+CRITERION: STABILIZATION — |θ(100 steps) − θ_target| < 0.10 rad AT
+END OF 100-step HORIZON (20/20 seeds 82200..82219, rest start).
+The criterion is terminal (a manipulation IS a hold, not a first
+band entry: band entry always yields error ≈ band, with no measurable
+margin). EXPECTED measured (J0 diligence): worst terminal error
+0.0059 rad (margin 94 % vs 0.10), robust to belief b_agent ±20 %
+(measured identical). First band entry within ≤ 30 steps (average
+~17-27) — both measurements are reported.
+IF PARTIAL (not expected): permitted only if justified by the static
+equation above and measured (never by threshold tuning).
+
+==================================================================
+7. E-W-C-P-L LOOP (FROZEN)
+==================================================================
+E: z = [θ, ω] (≥ 4 operations).
+W: sealed RK4 pendulum, belief m = 1.0 KNOWN and b = b_agent =
+Touch Gamma (grid/balance), predicts Δz and 2-step state for P
+(≥ 6 operations).
+C: H0 Pair (snapshot/restore bit-identical on the world) (≥ 2
+operations); fidelity W vs C.
+P: positional planner §6 (≥ 5 operations).
+L: JSONL audit (≥ 1 operation).
+AUDIT: raw energy, exact Στ² recomposition.
+
+==================================================================
+8. SEEDS (FROZEN, PRIME families)
+==================================================================
+    82000..82009   RK4 Determinism (pendulum, m=1 known)       (10 seeds)
+    82010..82019   H0 continuous (pendulum, m=1 known)          (10 seeds)
+    82020..82029   Causal Touch b = 0.5 N·m·s                   (10 seeds)
+    82030..82039   Causal Touch b = 1.0 N·m·s                   (10 seeds)
+    82040..82049   Causal Touch b = 1.5 N·m·s                   (10 seeds)
+    82100..82119   E-W-C-P-L Loop                               (20 seeds)
+    82200..82219   Manipulation θ_target                         (20 seeds)
+    82300..        RESERVE (never consumed without demonstration)
+
+==================================================================
+9. SUCCESS CRITERIA (FROZEN)
+==================================================================
+    C1 — RK4 Determinism          : 10/10 seeds diff < 1e-12
+    C2 — H0 continuous            : 10/10 seeds bit-identical, diff
+                                     < 1e-12
+    C3 — Causal Touch b (friction): error < 20 % (30/30 seeds)
+    C4 — E-W-C-P-L Loop          : 100 cycles × 20 seeds, 0 crash,
+                                     0 NaN/Inf, W/C fidelity ≥ 0.9,
+                                     τ² energy traced/recomposed exactly
+    C5 — Manipulation θ_target    : |θ(100 steps) − θ_target| < 0.10 rad
+                                     (20/20); PARTIAL permitted if
+                                     justified by static equation
+                                     (measured margin)
+
+==================================================================
+10. CUT-OFF (FROZEN)
+==================================================================
+NEGATIVE VERDICT if C1 OR C2 OR C3 OR C4 fails.
+Manipulation C5: SUCCESS / PARTIAL (non cut-off), any redefinition
+justified by PHYSICAL equation, never by threshold tuning.
+POSITIVE VERDICT otherwise.
+
+==================================================================
+11. TESTS TO DEFINE (FROZEN)
+==================================================================
+    T_gamma_1  RK4 Determinism: 2 identical runs → diff < 1e-12
+    T_gamma_2  H0 continuous bit-identical (θ, ω, t, b, constants)
+    T_gamma_3  Causal Touch b < 20 % (30/30), non-forced error,
+               2-pair agreement == 0
+    T_gamma_4  τ² Energy: Στ² recomposition == cum_energy, no
+               projection, cost (θ − θ_target)² + 0.01·τ²
+    T_gamma_5  E-W-C-P-L Loop: 100 cycles × 20 seeds, 0 crash,
+               0 NaN, fidelity ≥ 0.9, compatibility E≥4/W≥6/C≥2/P≥5/L≥1
+    T_gamma_6  Manipulation: |θ(100 steps) − θ_target| < 0.10 rad (20/20
+               or PARTIAL equation-justified), band entry ≤ 30 steps
+    T_gamma_7  Full audit (sealed fields, Phase 13 codebook intact,
+               bit-identical determinism recorded)
+    T_gamma_8  0 LLM / 0 external engine (NumPy only) / 0 Rust /
+               codebook + spec SHA intact after each measurement
+
+==================================================================
+12. ABSOLUTE PROHIBITIONS (FROZEN)
+==================================================================
+1. 0 modification of the Rust kernel / Phase 13 codebook.
+2. 0 LLM in the cognitive loop (P deterministic, W-only).
+3. 0 external physics engine: pure NumPy only (no MuJoCo,
+   PyBullet, Brax, SciPy.integrate).
+4. KNOWN mass: do NOT hide m + b simultaneously — friction reveals
+   itself through TEMPORAL DISSIPATION (kick + coast protocol), not
+   through an impulse from rest (which reveals inertia, known here).
+5. No seeds outside frozen families; reserve 82300+ unconsumed.
+6. No threshold redefinition without physical equation + measurement.
+7. Energy deposited raw into the world, never projected.
+8. Immutable spec SHA-256 (this file).
+
+GENESIS GAMMA REPORT: verdict, Lesson 37, addendum, Audit Journal,
+INDEX.

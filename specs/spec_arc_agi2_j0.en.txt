@@ -1,0 +1,291 @@
+---
+# Official English translation. Source FR sealed spec competitions/arc/spec_arc_agi2_j0.txt (SHA 2eab957b...) immutable.
+title: "Design Doc ARC-AGI-2 J0 — Causal reasoning on grids (E-W-C-P-L loop on out-of-distribution abstract tasks)"
+type: design
+project: BBI
+version: 0.1
+phase: competitions-arc
+status: J0 PRE-REGISTERED — GO DILIGENCE D1-D5, J0' sealing expected
+tags: [arc-agi-2, competitions, j0, pre-registration, design, grids, causal-reasoning, e-w-c-p-l, causal-touch, no-deep-learning, zero-llm, isolation, future-extensions]
+date: 2026-09-14
+osf_doi: "10.17605/OSF.IO/5RU96"
+osf_url: "https://osf.io/5ru96/"
+preregistration: "retrospective"
+preregistration_date: "2026-09-13"
+---
+
+# Design Doc ARC-AGI-2 J0 — Causal reasoning on grids
+
+**BBI — Competition program (isolation `competitions/`, CP arbitration
+2026-09-13, budget 10h/week max, 0 BBI code touched).**
+First major public test bed of the **out-of-distribution generalization**
+capability of the E-W-C-P-L loop on abstract reasoning
+tasks — **without deep learning, without LLM**.
+
+> This document is **pre-registered, sealable, then sealed** (NO code before
+> CP validation; CP constraint #1). Chef GO → **diligence D1-D5 (§8)** →
+> **SEALED spec** (SHA §9) → J1..J3. The §6 thresholds and cut-offs are **FROZEN
+> from J0** (Lesson 30: nothing moves after measurement). Ready to be timestamped on
+> the OSF registry — **Future Extensions** component (constraint #2 CP) —
+> BEFORE J1.
+
+---
+
+## §1. Scientific Question
+
+> Can the BBI E-W-C-P-L loop **discover and apply the
+> hidden transformation** of an ARC-AGI-2 grid **by causal intervention**,
+> without deep learning and without LLM?
+
+Pre-registered sub-questions:
+
+1. **Discovery**: can a rule hypothesis be **generated and tested
+   causally** rather than statistically (cf. counterfactual W)?
+2. **Generalization**: does a rule inferred on the observable part of a task
+   apply **bit-identically** to the test grid?
+3. **Honesty**: can BBI declare **"indeterminate"** when no rule
+   is inferable with confidence, rather than forcing an output?
+
+Framework: ARC-AGI-2 (static) = **generalization** puzzle — a task is a
+pair of reference input/outputs showing a pattern; the agent must produce
+the transformation. It is the **symbolic/spatial** extension of what BBI does
+already on the testbeds: the grid plays the role of the observation stream, the
+hidden transformation plays the role of the **causal mechanism**, and the intervention
+(modifying a cell) plays the role of the **kick**. The seed family 95000-95009 is
+reserved and verified virgin (§5).
+
+---
+
+## §2. Channel Specification (Reminder: Allowed Discrete Grids)
+
+- **E input**: 2D grid **max 30×30**, **discrete** states (colors/values
+  `0-9`, empty = `0`). Real ARC-AGI-2 case: grids up to 30×30, colored patterns.
+- **0 CNN, 0 image processing**: E reads the grid as a **matrix
+  of symbolic/spatial states** (deterministic, bit-identical). No learned
+  weights: the encoding is an explicit primitive extraction.
+- **Observable per task**: a set of reference pairs `(input₁, output₁)…(inputₙ,
+  outputₙ)` (public train) + the input grids of the evaluation
+  phase.
+- **P action**: **modification of one or more cells** (discrete
+  intervention) — a cell transitions from one state to another; particular cases:
+  recolor, duplicate, move, delete, symmetrize a **connected object**.
+
+**Latent representation (E)** — simple spatial primitives, deterministic:
+
+- **Connected objects** (4-connected components, by color).
+- **Symmetries**: symmetry axes (horizontal / vertical / diagonal / rotation),
+  detected on the object or the grid.
+- **Repetitions / periodicities**: repeated patterns, translations, tiles.
+- **Spatial relations**: relative position (above / left of / aligned /
+  distance), inclusion (object in a frame), quantified without learning.
+
+The latent is **a symbolic structure** (set of objects + attributes +
+relations), not a learned vector. W operates on this structure.
+
+---
+
+## §3. The E-W-C-P-L Loop adapted to ARC
+
+- **E (Encoder)**: grid → symbolic structure (connected objects,
+  symmetries, repetitions, relations). §2. Deterministic and invertible to
+  allow P to rebuild a grid.
+- **W (World Model)**: given a structure + an intervention
+  (modify cell/object), W **predicts the resulting structure** pursuing a
+  transformation-rule hypothesis. Hypotheses are
+  **parametrized transformations** (resampling of the operation
+  library: swap, recolor, dilate, rotate, crop, overlay, …). No
+  statistics: each hypothesis is a **deterministic function** of the grid.
+- **C (Comparator)**: compares the grid **predicted** by W to the grid
+  **revealed** (feedback) → consistency score (fraction of identical
+  cells, bit-identical required for a full match). Accumulates evidence per
+  reference pair. (It is the counterpart of the testbeds' "Causal Touch,"
+  but **spatial**: one observes how the rule reacts to a cell
+  modification.)
+- **P (Planner)**: from the hypothesis **validated by C** (≥ CE2), P
+  produces the **final test grid** by applying the transformation to
+  the evaluation input — in **one pass**, or a **limited number of attempts**
+  (§4 Phase 2). If no hypothesis reaches the confidence threshold, P emits
+  **"indeterminate"** (CE3) instead of forcing.
+
+**Loop**: for a task, E → W generates hypotheses → C scores them against
+the reference pairs → P decides. The **intervention** (exploration phase)
+serves to distinguish concurrent hypotheses that predict identically on
+train: one **perturbs a cell** of the input and checks the revealed output.
+
+---
+
+## §4. Learning-by-Intervention Protocol
+
+**⚠️ Factual gap reported to the CP**: the instruction says "120 public tasks
+(train)"; the verified official ARC-AGI-2 format on 2026-09-13
+(`competitions/dates_verify.md`, docs.arcprize.org) is **1000 public train
+tasks + 120 public eval** (leaderboard) + semi-private + private. The
+protocol keeps the **verified** figures:
+
+- **Phase 1 — Exploration (public train, 1000 tasks)**: BBI has the right to
+  **"touch" the grid** of each public task — modify one or
+  more cells — to **observe how the rule reacts** (spatial Causal
+  Touch). Goal: discriminate concurrent transformation
+  hypotheses (those that predict identically on the reference pairs
+  are separated by the perturbation).
+- **Phase 2 — Evaluation (120 public eval)**: on **holdout**, BBI must
+  produce the output grid for each evaluation input. **One output pass
+  per task** (single, deterministic final grid); learning
+  perturbation is **forbidden** on the holdout. Possible
+  "indeterminate" declaration (CE3) counted separately.
+
+**Approach sketch (J0 level, to detail in J1 after validation):**
+
+1. For a task: encode the train → list of symbolic structures.
+2. Generate the hypothesis space (parametrized operation library,
+   bounded in J1).
+3. Prune by consistency on the reference pairs; if several
+   hypotheses survive → **intervention**: perturb a cell, predict,
+   observe, re-prune.
+4. Apply the retained hypothesis to the evaluation input → final grid.
+
+---
+
+## §5. Seeds and Isolation
+
+- **Family**: `95000-95009` (10 seeds reserved for ARC, family verified
+  virgin at the 2026-09-13 scan — 0 real occurrence in `python/`, `scripts/`,
+  `data/`; occurrences = substrings of SHA256 digests). Causal touch and
+  hypothesis generation order: deterministic on the task seed.
+- **Isolation**: **0 modification of the BBI core** (`crates/bbbi-core` —
+  source of truth untouched) and **0 reuse of the `python/bbi_runtime/` runtime**:
+  all ARC code resides in **`competitions/arc/`**. No imports
+  from `crates/`, `python/` (competition isolation rule, Journal
+  2026-09-13).
+- **0 BBI data touched**: nothing in `data/`.
+- The BBI seeds 10000-92119 remain **untouched** (competition reserve
+  95000+).
+
+---
+
+## §6. Success Criteria (CE1-CE3) — thresholds FROZEN from J0
+
+> **CP arbitration 2026-09-14 (Lesson 44/45 — Oracle Ceiling):** the initially proposed
+> threshold (≥ 50%) was **revoked** — it would make the test objectively
+> unsolvable for a purely symbolic approach without DL/LLM in 7 weeks
+> (SOTA ARC-AGI-2 ≈ 30-40% with massive LLMs; calibrated human 66% pass@2).
+> A threshold must be calibrated on the **architecture's oracle ceiling**, not
+> set arbitrarily. New CE2 **FROZEN** below.
+
+- **CE1 — Bit-identical determinism in rule inference.** Run J1
+  twice (same seed, same map) → **bit-identical** outputs (equal grid SHAs,
+  no varying hash). Verified by a CI-like diff test (script
+  `competitions/arc/`).
+
+- **CE2 — Correct identification of the transformation (FROZEN by CP arbitration):
+  1. **Absolute threshold**: **≥ 5% exact match** on the 120 public
+  evaluation tasks (≥ 6 tasks solved, official score: 1 point per
+  exact output among 2 attempts — pass@2).
+  2. **Relative threshold**: **strictly > Random Baseline** (≈ 0% on
+  30×30 grids with 10 colors) — measured and reported.
+  3. **Secondary metric**: resolution rate on the **public train** (measure
+  of the learning capability).
+
+- **CE3 — Epistemic honesty.** If no hypothesis reaches the confidence
+  threshold (W/C decision threshold, itself frozen in J1), BBI **declares
+  "indeterminate"** — a **public and counted** declaration (never
+  masked or forced). An "indeterminate" task is **excluded from the denominator
+  of CE2** but **reported** in the balance sheet (total transparency).
+
+**pass@2 note (official format):** the ARC-AGI-2 evaluation asks **2
+attempts** per output (attempt_1/attempt_2); an output is correct if one
+of the two equals the reference. Since BBI is deterministic, attempt_2 = attempt_1
+(or "indeterminate" under CE3) — deterministic does not produce a spare
+random sample. Documented for the J1 implementation and for the scorer.
+
+**Verdicts**: CE1 ∧ CE2 ∧ CE3 → **POSITIVE**; CE2 alone failing → public
+verdict **PARTIAL NEGATIVE** (discovery/rule ok, limited generalization —
+published, not hidden, per the BBI discipline).
+
+---
+
+## §7. Prohibitions
+
+1. **0 Deep Learning** — no PyTorch, TensorFlow, JAX; no gradient
+   descent, no network, no learned weights. The E/W/P primitives are
+   **explicit deterministic** functions.
+2. **0 LLM** — no large language model, no "prompt engineering"
+   to solve the grids, no external API (official ARC constraint:
+   no internet access during evaluation — consistent).
+3. **0 data leakage** — the **holdout never contaminates W**: the 120 eval
+   (and a fortiori semi-private/private) are **never** used to generate,
+   calibrate or tune a hypothesis. Only the public train and interventions
+   on train are seen. No threshold tuning after measurement (Lesson 30).
+4. **0 BBI code touched** — nothing in `crates/`, `python/bbi_runtime/`, `data/`.
+
+---
+
+## §8. Diligence D1-D5 (before sealing)
+
+- **D1 — Verified isolation**: `git diff --stat crates/ python/ data/` = empty.
+- **D2 — Virgin seed family**: 95000-95009 scan replayed on
+  `competitions/arc/` + remains; 0 real usage.
+- **D3 — Verified ARC format**: official split (1000 train / 120 public eval),
+  max dimension 30×30, values 0-9, 1-point/pixel scoring rule · pass@2
+  re-verified on docs.arcprize.org / arcprize.org at J1.
+- **D4 — Symbolic Oracle Ceiling (CP requirement, Lesson 44/45)**: measure the
+  maximum score that the **bounded operation library** (swap, recolor,
+  dilate, rotate, crop, overlay, …) can reach on a **public-train
+  subsample** (e.g., 100 train tasks, drawn at random with seed →
+  determinism). If the ceiling < **20%** of train (because primitives are
+  missing) → **AMEND the operation library BEFORE the J0' sealing**
+  (CE2 is NOT lowered, the tool is enriched — Lesson 45). The oracle ceiling is
+  **documented** in the diligence report.
+- **D5 — Honesty**: verify that CE3 ("indeterminate") is
+  **architecturally possible** in the pipeline (W never forces an
+  output if no hypothesis reaches the confidence threshold); the
+  "indeterminate" declaration trigger is testable and wired into C/P.
+
+CP GO → **SEALED** spec (SHA §9) → J1.
+
+---
+
+## §8.1 D4 result (bounded library) — MEASURED 2026-09-14
+
+- **Oracle ceiling — bounded operation library** (short ops,
+  depth ≤ 2, **without visual abstraction**): **5.0% (2/40 tasks)** of the
+  public-train subsample (seed 95000, 40 tasks, 30 s/puzzle budget =
+  real limit of the ARC-AGI-2 runner).
+- **3 library amendments attempted**, each re-measured (drift from
+  v1 to v3):
+  1. complete geometric primitives (`tile_pattern`, `tile_to_dims`,
+     `fit_corner`) + composition depth ≤ 2;
+  2. per-color primitives (`remove_color`, `keep_color`, `propagate_color`,
+     `downscale`, `fill_interior`);
+  3. **connected-component segmentation** (`keep_biggest`, `frame_big`,
+     `keep_component_color`, `fill_enclosed`) + bounded program search
+     depth ≤ 2 (enum `f1;f2`) under the 30 s/puzzle budget.
+  Observed solving operators: `r180`, `scale3`.
+- **38 rebel tasks identified**: **per-object** rules, **conceptual
+  colors**, **bootstrapping** (patterns not reducible to a composition of
+  symmetries/scalings/translations).
+- **Verdict: NOT MET** (required ≥ 20%).
+- **Full report**: `competitions/arc/diligence_d4_report.json` (SHA
+  `226f24…)`; runner: `competitions/arc/diligence_d4_oracle.py`.
+- **Interpretation**: this ceiling measures **the library alone**, not **full
+  BBI** (E-W-C-P-L with visual abstraction: connected objects, symmetries,
+  repetitions, spatial relations, semantic hypothesis search). D4 does not
+  seal the architecture's limit — it seals that of its "short ops library"
+  component, and motivates **D4'** (§8.2).
+
+## §8.2 Diligence D4' (corrected) — TO BE EXECUTED IN J1
+
+- **Goal**: measure the oracle ceiling of **FULL BBI** (the
+  E-W-C-P-L loop with visual abstraction: connected objects, symmetries,
+  repetitions, spatial relations, **semantic hypothesis search**).
+- **Methodology**: **same 40-task subsample** of the public train
+  (seed 95000) — direct comparability to §8.1. 30 s/puzzle budget.
+- **Required threshold**: **≥ 20%** (full BBI ceiling).
+- **If D4' < 20%**: verdict **honest NEGATIVE** (BBI cannot solve
+  ARC-AGI-2 with the current primitives), **published** per the
+  BBI discipline (never masked).
+- **Report**: `competitions/arc/diligence_d4_prime_report.json`.
+
+CP GO (2026-09-14) → **SEALED** spec (SHA §9) → J1.**
+
+---
