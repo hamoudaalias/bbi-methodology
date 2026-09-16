@@ -435,7 +435,7 @@ documentation, never weakening of the criteria.**
 
 New scientific programme: **new channel, new feedback, new seed family
 (92000+), new seal**. The v1 specs remain closed PARTIAL (`5165e9df…`, report
-`20b4b515…`); the submitted NeurIPS camera-ready is **not modified**.
+`20b4b515…`); the camera-ready kit for NeurIPS (in preparation, **not** submitted) is **not modified**.
 
 ## 14. Conclusion
 
