@@ -27,7 +27,7 @@ digest that is archived on OSF before the corresponding measurement.
 
 > **Note:** the "49 Methodological Lessons" component reflects the lesson
 > count at the time of registration (2026-09-13). The vault now contains
-> **56 lessons** (as of 2026-09-16, incl. Lessons 54-56 from Phases 3-5).
+> **57 lessons** (as of 2026-09-16, incl. Lessons 54-57 from Phases 3-6).
 > OSF registrations are immutable;
 > a new registration or update is required to reflect the current count.
 
