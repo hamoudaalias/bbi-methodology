@@ -1,0 +1,19 @@
+---
+title: "Lesson 60 — Pruning efficiency (CE4) is a property of the goal distribution, not of the mechanism ; distinguish primary correction (CE2/G) from secondary efficiency (CE4)"
+type: lesson
+project: BBI
+tags: [lesson, temporal-reasoning, phase-9-agi, pruning-efficiency, ce4, fallback, goal-distribution, verdict-mapping, partial, lecon60, en]
+date: 2026-09-17
+lesson: 60
+source: "Methodological Lessons Corpus (BBI).md"
+---
+
+# Lesson 60 — Pruning efficiency is distribution-dependent
+
+**When :** Temporal reasoning J1-J4-P9, 2026-09-17 (E-W-C-P-L-A-T-I-K·A², Phase 9 AGI), sealed spec `638622a3…` (Option E hybrid construction), plan (F) shared exact transition graph (`d64309a`). J4-P9 on the holdout **91500-91599** : CE1 20/20, **CE2-P9 = 1.000** (P₁ / P₂ = 0.515), **G_seq = 1.000** (CI 1.000-1.000, n = 48), G(H=3/4/5) = 1.000 (n = 16 each), G per role = 1.000 (n 12-15, all CI LB > 0), CE3 27/27 probes / **0 forcing**, CE5 max 9 974 nodes. **CE4 holdout median 1.00 < 2.0** (fallback 50 % vs 31 % on devel) → **verdict PARTIEL** (CP Option-C mapping, Addendum CE4) — primary claim validated, pruning-efficiency bound published.
+
+**Context / tension :** the pruning-efficiency criterion CE4 measures the node ratio between the unpruned and pruned searches on the discriminant class. On devel it was 5.10 (fallback 31 %) ; on the holdout 1.00 (fallback 50 %) — same construction, same mechanism, same token floors : the **goal distribution** differs (the holdout's bases/goals require more third-party interventions, hence more completeness-fallback triggers, and the both-attempt accounting then reports a ratio ≈ 1). Five construction calibrations (v1-v4), a per-role diagnostic (which disculped the node-accounting convention itself — no counting change moves the median) and an Option-E hybrid (natural mining + role quotas + hard-role pairing) all converged to the same conclusion : **when the token floors force the hard roles (marker/hierarchical/anchor) into the family, their fallback-heavy goals bound the CE4 median from above by the fallback share** ; no construction can satisfy both floors and CE4 ≥ 2.0 at a 50 % fallback share. A real completeness bug (global visited, seed 91420) was found and fixed the right way : the **shared exact transition graph** (build once per base, all searches traverse it) — native completeness, ~50-100× faster than brute-forcing completeness per call.
+
+**Lesson :** 1) **pruning efficiency is a property of the goal distribution, not an intrinsic property of the mechanism** — report it per-split, never assume devel ≈ holdout ; 2) **distinguish PRIMARY criteria (does the mechanism solve the claim? correctness, gain) from SECONDARY criteria (how efficiently?)** — a secondary shortfall with all primary criteria satisfied is a PARTIEL, not a NEGATIF ; state the mapping explicitly in the verdict grid (a grid that omits a measured shortfall is a gap to fix by Addendum, not an excuse to move the threshold) ; 3) **fix completeness by structure, not by force** — building the transition graph once and searching it (native exhaustiveness) beats re-running an incomplete search with ever-larger budgets ; 4) **token floors and the pruning metric can be in structural tension** — a bounded pruning device (channel filter) + a completeness fallback + both-attempt accounting is an honest instrument that will *show* that tension rather than hide it.
+
+**Application :** 1) measure efficiency criteria on BOTH halves before opening ; 2) pre-register the verdict mapping for every criterion shortfall (including the secondary ones) ; 3) when a search must be exhaustive, materialise the exact graph once and traverse it — never patch exhaustiveness with brute-force re-expansion ; 4) publish the efficiency bound (median, min, fallback share) alongside the verdict.
