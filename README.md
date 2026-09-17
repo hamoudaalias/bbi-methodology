@@ -8,7 +8,7 @@
 ## What is public
 
 This repository contains the PUBLIC METHODOLOGICAL CORPUS of BBI:
-- **58 methodological lessons** learned across 8 domain extensions and 7 AGI phases
+- **59 methodological lessons** learned across 8 domain extensions and 8 AGI phases
 - **Sealed specifications** (SHA-256 digests) for all experiments
 - **Honest verdicts** (positive AND negative — including failures)
 - **Pre-registered protocols** and frozen success criteria
